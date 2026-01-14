@@ -1,11 +1,14 @@
-#include "types.h"
+/*#include "types.h"
 #include "param.h"
 #include "memlayout.h"
 #include "loongarch.h"
 #include "defs.h"
 
-volatile static int started = 0;
 
+*/
+//volatile static int started = 0;
+
+/*
 // start() jumps here in supervisor mode on all CPUs.
 void
 main()
@@ -42,4 +45,28 @@ main()
   }
 
   scheduler();        
+}
+*/
+#include "types.h"
+#include "memlayout.h"
+
+void uartinit(void);
+void uartputc_sync(int c);
+
+void uartputs(char *s) {
+  while (*s != 0) {
+    uartputc_sync(*s++);
+  }
+}
+
+void main() {
+  uartinit();
+
+  uartputs("LA OK\n");
+
+
+  uartputs("龙神，启动！\n");
+
+
+  for(;;) ;
 }
