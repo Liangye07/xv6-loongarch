@@ -1,24 +1,38 @@
-OUTPUT_ARCH( "riscv" )
+OUTPUT_ARCH( "loongarch" )
 ENTRY( _entry )
 
 SECTIONS
 {
   /*
-   * ensure that entry.S / _entry is at 0x80000000,
+   * 保留2MB的地址用作其他部分，在此后用作内核内存镜像的虚拟地址
    * where qemu's -kernel jumps.
    */
-  . = 0x80000000;
+  . = 0x9000000000200000;
 
-  .text : {
-    kernel/entry.o(_entry)
-    *(.text .text.*)
-    . = ALIGN(0x1000);
-    _trampoline = .;
-    *(trampsec)
-    . = ALIGN(0x1000);
-    ASSERT(. - _trampoline == 0x1000, "error: trampoline larger than one page");
-    PROVIDE(etext = .);
-  }
+.text : {
+  kernel/entry.o(_entry)   /* LoongArch 的入口汇编文件 */
+  *(.text .text.*)
+  . = ALIGN(0x1000);
+
+  _keentry = .;            /* kernel exception entry */
+  *(k_eentry)
+  . = ALIGN(0x1000);
+
+  _ueentry = .;            /* user exception entry */
+  *(u_eentry)
+  . = ALIGN(0x1000);
+
+  _tlbrentry = .;          /* TLB refill entry */
+  *(tlbrentry)
+  . = ALIGN(0x1000);
+
+  _merrentry = .;          /* machine error entry */
+  *(merrentry)
+  . = ALIGN(0x1000);
+
+  PROVIDE(etext = .);
+}
+
 
   .rodata : {
     . = ALIGN(16);
