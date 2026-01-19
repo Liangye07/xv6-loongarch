@@ -14,13 +14,13 @@
 #include "types.h"
 #include "param.h"
 #include "spinlock.h"
-#include "sleeplock.h"
-#include "fs.h"
-#include "file.h"
+// #include "sleeplock.h"
+// #include "fs.h"
+// #include "file.h"
 #include "memlayout.h"
 #include "loongarch.h"
 #include "defs.h"
-#include "proc.h"
+// #include "proc.h"
 
 #define BACKSPACE 0x100  // erase the last output character
 #define C(x)  ((x)-'@')  // Control-x
@@ -52,7 +52,7 @@ struct {
   uint w;  // Write index
   uint e;  // Edit index
 } cons;
-
+/*
 //
 // user write() system calls to the console go here.
 // uses sleep() and UART interrupts.
@@ -183,7 +183,7 @@ consoleintr(int c)
   
   release(&cons.lock);
 }
-
+*/
 void
 consoleinit(void)
 {
@@ -193,6 +193,6 @@ consoleinit(void)
 
   // connect read and write system calls
   // to consoleread and consolewrite.
-  devsw[CONSOLE].read = consoleread;
-  devsw[CONSOLE].write = consolewrite;
+  //devsw[CONSOLE].read = consoleread;
+  //devsw[CONSOLE].write = consolewrite;
 }
