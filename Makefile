@@ -7,9 +7,14 @@ U=user
 
 OBJS = \
   $K/entry.o \
-  $K/uart.o \
+  $K/start.o \
   $K/main.o \
+  $K/printf.o \
+  $K/console.o \
+  $K/uart.o \
+  $K/spinlock.o \
   $K/string.o
+
 
 
 UNAME_M=$(shell uname -m)
@@ -56,11 +61,12 @@ QEMU = qemu-system-loongarch64
 CPUS := 3
 
 # LoongArch QEMU 必须指定适配的机器类型和驱动总线
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
-QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
-QEMUOPTS += -device virtio-blk-pci,drive=x0
+QEMUOPTS = -machine virt -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
+# 由于目前没有文件系统，先把相关内容注释掉
+# QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+# QEMUOPTS += -device virtio-blk-pci,drive=x0
 
-qemu: $K/kernel fs.img
+qemu: $K/kernel
 	$(QEMU) $(QEMUOPTS)
 
 clean: 

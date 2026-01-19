@@ -47,26 +47,20 @@ main()
   scheduler();        
 }
 */
+
 #include "types.h"
+#include "param.h"
 #include "memlayout.h"
+#include "loongarch.h"
+#include "defs.h"
 
-void uartinit(void);
-void uartputc_sync(int c);
+void consoleinit(void);
 
-void uartputs(char *s) {
-  while (*s != 0) {
-    uartputc_sync(*s++);
-  }
-}
+void main(void)
+{
+    consoleinit();
 
-void main() {
-  uartinit();
+    printf("LA OK\n");
 
-  uartputs("LA OK\n");
-
-
-  uartputs("龙神，启动！\n");
-
-
-  for(;;) ;
+    for(;;);
 }
