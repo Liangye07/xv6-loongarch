@@ -47,20 +47,43 @@ main()
   scheduler();        
 }
 */
-
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
 #include "loongarch.h"
 #include "defs.h"
 
-void consoleinit(void);
-
-void main(void)
+void
+main(void)
 {
-    consoleinit();
+  // 1. 基础输出初始化 (Week 3)
+  consoleinit();
+  printfinit();
+  printf("\n");
+  printf("xv6-loongarch: booting Week 6 (Trap/Interrupt) test...\n");
 
-    printf("LA OK\n");
+  // 2. 中断与异常初始化 (Week 6 核心)
+  // trapinit 负责将 kernelvec 挂载到 CSR.EENTRY
+  trapinit(); 
+  printf("trap: exception entry (EENTRY) set to kernelvec.\n");
 
-    for(;;);
+  // trapinithart 负责设置当前 CPU 的 TCFG、开启 ECFG.TI 并开启全局中断 CSR.CRMD.IE
+  trapinithart(); 
+  printf("trap: hart initialized, timer started, interrupts enabled.\n");
+
+  // 3. 验证阶段
+  printf("Testing: Waiting for timer interrupts (should see dots below)...\n");
+
+  // 如果一切正常，由于 trapinithart 开启了中断，
+  // CPU 会定期触发时钟中断，跳入 kernelvec.S，再进入 trap.c 的 kerneltrap()。
+  // 根据之前写的 trap.c 逻辑，你应该能看到屏幕上不断跳出 "."
+  asm volatile("syscall 0");
+  for(;;) {
+    // 你也可以在这里手动触发一个异常来测试系统调用入口：
+    // static int done = 0;
+    // if(!done) {
+    //   done = 1;
+    //   asm volatile("syscall 0"); 
+    // }
+  }
 }

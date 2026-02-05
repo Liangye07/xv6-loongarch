@@ -226,6 +226,36 @@ static inline void flush_tlb_one(uint64 va)
 {
   asm volatile("invtlb 0x5, $r0, %0" : : "r" (va));
 }
+//存放 TLB 指令操作时 TLB 表项低位部分物理页号等相关的信息
+static inline uint64 csrrd_tlbrelo0()
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x8c" : "=r" (x) );
+  return x;
+}
+
+static inline uint64 csrrd_tlbrelo1()
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x8d" : "=r" (x) );
+  return x;
+}
+//TLB 重填例外入口地址
+static inline void csrwr_tlbrentry(uint64 x)
+{
+  asm volatile("csrwr %0, 0x88" : : "r" (x) );
+}
+//二级页表
+static inline void csrwr_stlbps(uint32 x)
+{
+  asm volatile("csrwr %0, 0x1e" : : "r" (x) );
+}
+//TLB 重填例外表项高位
+static inline void csrwr_tlbrehi(uint64 x)
+{
+  asm volatile("csrwr %0, 0x8e" : : "r" (x) );
+}
+
 //ASID：0x18
 static inline void csrwr_asid(uint64 x)
 {
