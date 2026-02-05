@@ -10,6 +10,7 @@ void timerinit();
 // 这里的 stack0 会被 entry.S 使用
 __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 
+// start 函数在 DMW 直接映射模式下运行
 void
 start()
 {
@@ -17,8 +18,7 @@ start()
   uint64 x = csrrd_prmd();
   x &= ~CSR_CRMD_PLV;     // 设置返回后处于 PLV0 (最高特权级)
   
-  // 优化：在 start 阶段先保持 IE=0 (关闭中断)
-  // 等 main.c 完成所有初始化后再由具体的函数开启
+  // 保持 IE=0 (关闭中断)，直到内核初始化后期再开启
   x &= ~CSR_CRMD_IE;      
   csrwr_prmd(x);
 
@@ -29,20 +29,20 @@ start()
   timerinit();
 
   // 4. 将 hartid 写入 $tp 寄存器
-  // xv6 很多宏 (如 cpuid) 依赖 $tp 寄存器
+  // 使用 move 指令将 cpuid 放入 $tp
   uint64 id = r_cpuid();
   asm volatile("move $tp, %0" : : "r" (id));
 
   // 5. 执行 ertn
-  // 该指令会将 PRMD 里的 PLV/IE 应用到当前状态，并跳转到 ERA 指向的地址
+  // 此时 CRMD 仍然是 DA=1, PG=0 (直接映射)
+  // 跳转到 main 后，main 会调用 kvminithart 切换到分页模式
   asm volatile("ertn");
 }
 
 void
 timerinit()
 {
-  // 设置恒定频率定时器
-  // interval = 时钟频率 * 时间(s)。这里预设一个值，后续根据 QEMU 频率调整
+  // 设置恒定频率定时器 (10MHz 假设)
   uint64 interval = 10000000; 
   csrwr_tcfg(interval | CSR_TCFG_EN | CSR_TCFG_PER);
 

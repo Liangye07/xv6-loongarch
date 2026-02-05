@@ -13,9 +13,11 @@ OBJS = \
   $K/console.o \
   $K/uart.o \
   $K/spinlock.o \
-  $K/string.o
-
-
+  $K/kalloc.o\
+  $K/vm.o\
+  $K/trap.o\
+  $K/kernelvec.o\
+  $K/string.o 
 
 UNAME_M=$(shell uname -m)
 ifeq ($(findstring loongarch64,$(UNAME_M)),loongarch64)
