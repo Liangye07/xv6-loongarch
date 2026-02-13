@@ -1,4 +1,4 @@
-OUTPUT_ARCH( "riscv" )
+OUTPUT_ARCH( "loongarch" )
 
 SECTIONS
 {
