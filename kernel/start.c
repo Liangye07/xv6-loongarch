@@ -26,7 +26,7 @@ start()
   csrwr_era((uint64)main);
 
   // 3. 基础硬件初始化 (时钟)
-  timerinit();
+  // timerinit();
 
   // 4. 将 hartid 写入 $tp 寄存器
   // 使用 move 指令将 cpuid 放入 $tp
@@ -38,7 +38,7 @@ start()
   // 跳转到 main 后，main 会调用 kvminithart 切换到分页模式
   asm volatile("ertn");
 }
-
+/*
 void
 timerinit()
 {
@@ -50,4 +50,4 @@ timerinit()
   uint64 ecfg = csrrd_ecfg();
   ecfg |= ECFG_LIE_TI; 
   csrwr_ecfg(ecfg);
-}
+}*/

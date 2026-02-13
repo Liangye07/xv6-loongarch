@@ -17,6 +17,9 @@ OBJS = \
   $K/vm.o\
   $K/trap.o\
   $K/kernelvec.o\
+  $K/proc.o\
+  $K/swtch.o\
+  $K/stubs.o\
   $K/string.o 
 
 UNAME_M=$(shell uname -m)
@@ -83,6 +86,11 @@ ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
+
+$U/testproc: $U/testproc.o $U/ulib.o $U/usys.o
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/testproc $^
+	$(OBJDUMP) -S $U/testproc > $U/testproc.asm
+
 
 $U/usys.S : $U/usys.pl
 	perl $U/usys.pl > $U/usys.S

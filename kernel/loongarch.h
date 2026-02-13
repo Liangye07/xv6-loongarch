@@ -7,9 +7,17 @@
 #define CSR_CRMD_PG   (1L << 4)  // 页表映射地址翻译使能
 
 // ECFG 
+#define CSR_ECFG_VS_SHIFT  16 
 #define ECFG_LIE_TI   (1L << 11) // 定时器中断使能
 #define ECFG_LIE_HWI  (1L << 2)  // 硬件中断0使能 (通常接串口)
 
+#define CSR_ECFG_LIE_TI_SHIFT  11
+#define HWI_VEC 0x3fcU
+#define TI_VEC  (0x1 << CSR_ECFG_LIE_TI_SHIFT)
+
+#define CSR_ESTAT_ECODE  (0x3fU << 16)
+#define PRMD_PPLV (3U << 0)  // Previous Privilege
+#define PRMD_PIE  (1U << 2)  // Previous Int_enable
 // TCFG
 #define CSR_TCFG_EN     (1L << 0) // 定时器开启
 #define CSR_TCFG_PER    (1L << 1) // 定时器循环模式
@@ -28,6 +36,7 @@
 #define ECode_BRK     12  // 断点 (Breakpoint)
 #define ECode_INE     13  // 非法指令 (Instruction Non-existent)
 
+#define CSR_TICLR_CLR  (0x1 << 0)
 //CRMD：0x0 当前模式信息
 static inline uint64 csrrd_crmd()
 {
@@ -185,6 +194,12 @@ static inline void csrwr_ticlr()
   // 往 0x44 (TICLR) 的第 0 位写 1，表示告知硬件“中断已处理”
   asm volatile("csrwr %0, 0x44" : : "r" (0x1));
 }
+static inline uint32 csrrd_ticlr()
+{
+  uint32 x;
+  asm volatile("csrrd %0, 0x44" : "=r" (x) );
+  return x;
+}
 //内存-------------------------------------------------------------------------------------------------------------
 //PWCL：0x1c 低位页表
 static inline void csrwr_pwcl(uint64 x)
@@ -239,6 +254,12 @@ static inline uint64 csrrd_tlbrelo1()
   uint64 x;
   asm volatile("csrrd %0, 0x8d" : "=r" (x) );
   return x;
+}
+
+static inline void
+csrwr_merrentry(uint64 x)
+{
+  asm volatile("csrwr %0, 0x93" : : "r" (x) );
 }
 //TLB 重填例外入口地址
 static inline void csrwr_tlbrentry(uint64 x)
