@@ -45,7 +45,7 @@ kvminit(void)
   //mappages(kernel_pagetable, RAMBASE, RAMSTOP - RAMBASE, DMW2PA(RAMBASE), PTE_P | PTE_W | PTE_MAT);
 
   // 3. 映射内核栈 (由 procinit 准备，映射到内核页表)
-  //proc_mapstacks(kernel_pagetable);
+  proc_mapstacks(kernel_pagetable);
 }
 
 /*

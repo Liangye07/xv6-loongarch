@@ -16,6 +16,7 @@ void handle_tlbr();
 void handle_merr();
 void userret(uint64, uint64);
 
+void usertrap(void);
 extern int devintr();
 
 /*

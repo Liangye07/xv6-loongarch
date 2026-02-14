@@ -30,43 +30,17 @@ main(void)
   kvminit();
   printf("[2] main: kvminit done\n");
 
-  // 4. 启用分页机制
-  // 必须在开启中断前完成，因为中断处理程序可能需要页表环境
-  printf("[3] main: enabling paging (kvminithart)...\n");
-  kvminithart();
-  printf("[3] main: paging enabled!\n");
-
-  // 5. 初始化 Trap (中断/异常)
-  // 设置异常向量入口 EENTRY
-  printf("[4] main: calling trapinit()...\n");
+ printf("[4] main: calling trapinit()...\n");
   trapinit();
 
-  // 6. 开启当前 CPU 的时钟中断
-  // 设置定时器并开启 CRMD.IE 允许中断触发
-  printf("[5] main: calling trapinithart()...\n");
-  trapinithart();
-  printf("[5] main: interrupts are now enabled!\n");
+  // --- 暴力测试开始 ---
+  printf("[Test] Direct Interrupt Test: enabling interrupts and spinning...\n");
+  
+  intr_on(); // 手动开启全局中断开关 (修改 CSR_CRMD 的 IE 位)
 
-  // 7. 分页开启后验证内存分配是否可用
-  printf("[Test] Paging and memory allocator test...\n");
-  char *mem = kalloc();
-  if(mem != 0){
-    printf("[Test] kalloc() success: VA=%p\n", mem);
-    *(volatile uint64*)mem = 0x12345678abcdef00ULL;
-    uint64 val = *(uint64*)mem;
-    if(val == 0x12345678abcdef00ULL) {
-      printf("[Test] memory write/read OK!\n");
-    }
-    kfree(mem);
-  }
- /*
-  // 8. 等待并观察时钟中断
-  // 在 trap.c 的 clockintr 中，每隔 10 个 tick 会打印一个 "."
-  printf("[Info] Waiting for timer interrupts (watch for dots)... \n");
-  printf("================================================\n");
-
-  // 进入死循环，等待中断打断此处执行并进入 kerneltrap -> devintr -> clockintr
   for(;;) {
-    // 可以在这里增加一点延迟打印，或者单纯空转
-  }*/
+    // 啥也不干，就在这等中断
+    // 如果时钟中断配置成功，它会强行打断这个循环，跳到 kerneltrap
+  }
+  // --- 暴力测试结束 ---
 }

@@ -189,7 +189,7 @@ static inline uint64 csrrd_tval()
 }
 
 // TICLR：0x44 清除时钟中断标志 
-static inline void csrwr_ticlr()
+static inline void csrwr_ticlr(uint32 x)
 {
   // 往 0x44 (TICLR) 的第 0 位写 1，表示告知硬件“中断已处理”
   asm volatile("csrwr %0, 0x44" : : "r" (0x1));
