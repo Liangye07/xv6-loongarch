@@ -20,6 +20,12 @@ OBJS = \
   $K/proc.o\
   $K/swtch.o\
   $K/stubs.o\
+  $K/syscall.o\
+  $K/merror.o\
+  $K/tlbrefill.o\
+  $K/uservec.o\
+  $K/sysproc.o\
+  $K/sysfile.o\
   $K/string.o 
 
 UNAME_M=$(shell uname -m)

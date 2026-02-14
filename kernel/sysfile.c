@@ -7,6 +7,27 @@
 #include "types.h"
 #include "loongarch.h"
 #include "defs.h"
+
+uint64 sys_open(void) { return -1; }
+uint64 sys_close(void) { return -1; }
+uint64 sys_read(void) { return -1; }
+uint64 sys_write(void) { return -1; }
+uint64 sys_fstat(void) { return -1; }
+uint64 sys_link(void) { return -1; }
+uint64 sys_unlink(void) { return -1; }
+uint64 sys_mkdir(void) { return -1; }
+uint64 sys_mknod(void) { return -1; }
+uint64 sys_chdir(void) { return -1; }
+uint64 sys_dup(void) { return -1; }
+uint64 sys_pipe(void) { return -1; }
+uint64 sys_exec(void) { return -1; }
+
+
+
+/*
+#include "types.h"
+#include "loongarch.h"
+#include "defs.h"
 #include "param.h"
 #include "stat.h"
 #include "spinlock.h"
@@ -503,3 +524,4 @@ sys_pipe(void)
   }
   return 0;
 }
+*/

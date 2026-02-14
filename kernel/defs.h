@@ -79,15 +79,14 @@ void            printfinit(void);
 
 // proc.c
 int             cpuid(void);
-void            kexit(int);
-int             kfork(void);
+void            exit(int);
+int             fork(void);
 int             growproc(int);
 void            proc_mapstacks(pagetable_t);
 pagetable_t     proc_pagetable(struct proc *);
 void            proc_freepagetable(pagetable_t, uint64);
-int             kkill(int);
+int             kill(int);
 int             killed(struct proc*);
-void            setkilled(struct proc*);
 struct cpu*     mycpu(void);
 struct proc*    myproc();
 void            procinit(void);
@@ -95,7 +94,7 @@ void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            sleep(void*, struct spinlock*);
 void            userinit(void);
-int             kwait(uint64);
+int             wait(uint64);
 void            wakeup(void*);
 void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
@@ -129,9 +128,9 @@ int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
 
 // syscall.c
-void            argint(int, int*);
+int             argint(int, int*);
 int             argstr(int, char*, int);
-void            argaddr(int, uint64 *);
+int             argaddr(int, uint64 *);
 int             fetchstr(uint64, char*, int);
 int             fetchaddr(uint64, uint64*);
 void            syscall();
@@ -140,8 +139,12 @@ void            syscall();
 extern uint     ticks;
 extern struct spinlock tickslock;
 void            trapinit(void);
-void            trapinithart(void);
-void            kerneltrap(void);      // 确保声明了汇编调用的入口
+//void            trapinithart(void);
+void            kerneltrap(void);
+void            usertrapret(void);
+void            usertrap(void);
+void            machine_trap(void);
+// 确保声明了汇编调用的入口
 // void         prepare_return(void); // 如果你还没写 usertrap，先注释掉
 // uart.c
 void            uartinit(void);
