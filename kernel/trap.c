@@ -185,7 +185,6 @@ devintr()
   uint32 ecfg = csrrd_ecfg();
 
   if(estat & ecfg & HWI_VEC) {
-    /*
     // this is a hardware interrupt, via IOCR.
 
     // irq indicates which device interrupted.
@@ -203,7 +202,7 @@ devintr()
       apic_complete(irq); 
       extioi_complete(irq);        
     }
-*/
+
     return 1;
   } else if(estat & ecfg & TI_VEC){
     //timer interrupt,

@@ -6,6 +6,11 @@
 #include "proc.h"      // struct proc, allocproc, killed 等
 #include "spinlock.h"  // struct spinlock, acquire/release
 
+#include "sleeplock.h"  // <--- 必须在 file.h 之前！
+#include "fs.h"
+#include "file.h" // 确保能看到 NDEV 的定义（如果 NDEV 在 param.h 里，也要包含）
+
+struct devsw devsw[NDEV]; // 去掉 extern！这就是“生出”这个变量
 /*
  * LoongArch xv6 内核主入口
  * 增加了时钟中断测试逻辑：开启中断后，系统应能周期性打印 "."

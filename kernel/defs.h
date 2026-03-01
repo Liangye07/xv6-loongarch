@@ -73,7 +73,7 @@ int             piperead(struct pipe*, uint64, int);
 int             pipewrite(struct pipe*, uint64, int);
 
 // printf.c
-int             printf(char*, ...) __attribute__ ((format (printf, 1, 2)));
+void            printf(char*, ...);
 void            panic(char*) __attribute__((noreturn));
 void            printfinit(void);
 
@@ -149,7 +149,7 @@ void            machine_trap(void);
 // uart.c
 void            uartinit(void);
 void            uartintr(void);
-void            uartwrite(char [], int);
+void            uartputc(int);
 void            uartputc_sync(int);
 int             uartgetc(void);
 
@@ -170,11 +170,13 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
-// plic.c
-void            plicinit(void);
-void            plicinithart(void);
-int             plic_claim(void);
-void            plic_complete(int);
+// apic.c
+void            apic_init(void);
+void            apic_complete(uint64 irq);
+// extioi.c
+void            extioi_init(void);
+uint64          extioi_claim(void);
+void            extioi_complete(uint64);
 
 // virtio_disk.c
 void            virtio_disk_init(void);
