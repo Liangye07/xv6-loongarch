@@ -1,5 +1,14 @@
 #ifndef __ASSEMBLER__
 //--------------------------------------------------------------------------------------------------------------------------------------
+//io
+
+#define LOONGARCH_IOCSR_EXTIOI_EN_BASE		    0x1600
+#define LOONGARCH_IOCSR_EXTIOI_ISR_BASE		    0x1800
+#define LOONGARCH_IOCSR_EXTIOI_MAP_BASE       0x14c0
+#define LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE	    0x1c00
+#define LOONGARCH_IOCSR_EXRIOI_NODETYPE_BASE  0x14a0
+
+
 // CRMD
 #define CSR_CRMD_PLV  (3L << 0)  // 权限级位
 #define CSR_CRMD_IE   (1L << 2)  // 全局中断使能位
@@ -324,6 +333,7 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
 {
   asm volatile("iocsrwr.d %0, %1" : : "r"(val), "r"(addr));
 }
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 // 定义页表配置参数 (以 Sv39 为准：9-9-9 索引)

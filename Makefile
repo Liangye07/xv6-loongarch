@@ -26,6 +26,8 @@ OBJS = \
   $K/uservec.o\
   $K/sysproc.o\
   $K/sysfile.o\
+  $K/apic.o\
+  $K/extioi.o\
   $K/string.o 
 
 UNAME_M=$(shell uname -m)

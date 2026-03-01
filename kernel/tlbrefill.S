@@ -10,8 +10,8 @@ handle_tlbr:
 //	addi.d  $t0, $t0, -1
 	lddir	$t0, $t0, 3
 	addi.d  $t0, $t0, -1
-	lddir	$t0, $t0, 2
-	addi.d  $t0, $t0, -1
+//	lddir	$t0, $t0, 2
+//	addi.d  $t0, $t0, -1
 	lddir   $t0, $t0, 1
 	addi.d  $t0, $t0, -1
 	ldpte	$t0, 0

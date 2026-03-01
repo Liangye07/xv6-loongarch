@@ -38,16 +38,3 @@ start()
   // 跳转到 main 后，main 会调用 kvminithart 切换到分页模式
   asm volatile("ertn");
 }
-/*
-void
-timerinit()
-{
-  // 设置恒定频率定时器 (10MHz 假设)
-  uint64 interval = 10000000; 
-  csrwr_tcfg(interval | CSR_TCFG_EN | CSR_TCFG_PER);
-
-  // 开启定时器中断位 (TI) 的局部使能
-  uint64 ecfg = csrrd_ecfg();
-  ecfg |= ECFG_LIE_TI; 
-  csrwr_ecfg(ecfg);
-}*/
