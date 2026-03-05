@@ -7,19 +7,20 @@ U=user
 
 OBJS = \
   $K/entry.o \
+  $K/bio.o\
   $K/start.o \
   $K/main.o \
   $K/printf.o \
   $K/console.o \
   $K/uart.o \
   $K/spinlock.o \
+  $K/sleeplock.o\
   $K/kalloc.o\
   $K/vm.o\
   $K/trap.o\
   $K/kernelvec.o\
   $K/proc.o\
   $K/swtch.o\
-  $K/stubs.o\
   $K/syscall.o\
   $K/merror.o\
   $K/tlbrefill.o\
@@ -28,6 +29,12 @@ OBJS = \
   $K/sysfile.o\
   $K/apic.o\
   $K/extioi.o\
+  $K/pipe.o\
+  $K/fs.o\
+  $K/file.o\
+  $K/exec.o\
+  $K/log.o\
+  $K/ramdisk.o\
   $K/string.o 
 
 UNAME_M=$(shell uname -m)
@@ -111,3 +118,27 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 
 # 默认包含依赖文件
 -include kernel/*.d user/*.d
+
+
+
+UPROGS=\
+	$U/_cat\
+	$U/_echo\
+	$U/_forktest\
+	$U/_grep\
+	$U/_init\
+	$U/_kill\
+	$U/_ln\
+	$U/_ls\
+	$U/_mkdir\
+	$U/_rm\
+	$U/_sh\
+	$U/_stressfs\
+#	$U/_usertests\
+	$U/_grind\
+	$U/_wc\
+	$U/_zombie\
+
+fs.img: mkfs/mkfs README $(UPROGS)
+	mkfs/mkfs fs.img README $(UPROGS)
+	xxd -i fs.img > kernel/ramdisk.h
