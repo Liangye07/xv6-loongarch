@@ -190,6 +190,19 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
 }
+
+uchar initcode[] = {
+  0x04, 0x00, 0x00, 0x1c, 0x84, 0x00, 0xc1, 0x28,
+  0x05, 0x00, 0x00, 0x1c, 0xa5, 0x00, 0xc1, 0x28,
+  0x0b, 0x1c, 0x80, 0x03, 0x00, 0x00, 0x2b, 0x00, 
+  0x0b, 0x08, 0x80, 0x03, 0x00, 0x00, 0x2b, 0x00,
+  0xff, 0xfb, 0xff, 0x57, 0x2f, 0x69, 0x6e, 0x69,
+  0x74, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x2c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
 // 建立第一个进程
 void
 userinit(void)
@@ -199,23 +212,22 @@ userinit(void)
   p = allocproc();
   initproc = p;
   
-  // 映射并加载 initcode。
-  extern char _binary_initcode_start[], _binary_initcode_size[];
-  uvminit(p->pagetable, (uchar *)_binary_initcode_start, (uint64)_binary_initcode_size);
+  // allocate one user page and copy init's instructions
+  // and data into it.
+  uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
 
-  // 初始化用户陷阱帧
-  p->trapframe->era = 0;      // LoongArch 的异常返回地址 (ERA)
-  p->trapframe->sp = PGSIZE;  // 用户栈顶
+  // prepare for the very first "return" from kernel to user.
+  p->trapframe->era = 0;      // user program counter
+  p->trapframe->sp = PGSIZE;  // user stack pointer 
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
-  p->cwd = namei("/");
+  p->cwd = namei("/"); 
 
   p->state = RUNNABLE;
 
   release(&p->lock);
 }
-
 // 增加或减少用户内存。
 int
 growproc(int n)

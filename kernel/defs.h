@@ -23,7 +23,7 @@ void            consoleintr(int);
 void            consputc(int);
 
 // exec.c
-int             kexec(char*, char**);
+int             exec(char*, char**);
 
 // file.c
 struct file*    filealloc(void);
@@ -185,3 +185,14 @@ void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+
+// pipe.c
+int             pipealloc(struct file**, struct file**);
+void            pipeclose(struct pipe*, int);
+int             piperead(struct pipe*, uint64, int);
+int             pipewrite(struct pipe*, uint64, int);
+
+// ramdisk.c
+void            ramdiskinit(void);
+void            ramdiskrw(struct buf*, int write);
