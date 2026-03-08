@@ -22,7 +22,11 @@ uservec:
         
 	# swap a0 and SAVE
         # so that a0 is TRAPFRAME
+        #csrwr  $a0, LOONGARCH_CSR_SAVE0
+
+        csrrd  $t0, LOONGARCH_CSR_SAVE0
         csrwr  $a0, LOONGARCH_CSR_SAVE0
+        add.d  $a0, $t0, $zero
 
         # save the user registers in TRAPFRAME
         st.d   $ra, $a0, 0
@@ -88,8 +92,8 @@ userret:
         # switch to the user page table.
         csrwr  $a1, LOONGARCH_CSR_PGDL
         invtlb 0x0,$zero,$zero
-        ld.d   $t0, $a0, 264
-        csrrd $t0, 0x6
+        //ld.d   $t0, $a0, 264
+        //csrrd $t0, 0x6
 
         # put the saved user a0 in SAVE0, so we
         # can swap it with our a0 (TRAPFRAME) in the last step.
@@ -130,7 +134,10 @@ userret:
         ld.d   $s8, $a0, 240
 
 	# restore user a0, and save TRAPFRAME in SAVE0
+        #csrwr  $a0, LOONGARCH_CSR_SAVE0
+        csrrd  $t0, LOONGARCH_CSR_SAVE0
         csrwr  $a0, LOONGARCH_CSR_SAVE0
+        add.d  $a0, $t0, $zero
         
         # return to user mode and user pc.
         # usertrapret() set up prmd and era.
