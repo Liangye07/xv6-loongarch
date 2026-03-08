@@ -1,18 +1,10 @@
 // memlayout.h — LoongArch xv6 memory layout (recommended)
 
 // DMW 窗口掩码（entry.S 中也使用了相同掩码）
-#ifndef DMWIN0_MASK
 #define DMWIN0_MASK 0x9000000000000000UL  // DMW0: cached memory (kernel RAM)
-#endif
-
-#ifndef DMWIN1_MASK
 #define DMWIN1_MASK 0x9100000000000000UL  // DMW1: device MMIO (UART, PLIC 等)
-#endif
 
-// 将物理地址转为 DMW VA（用于内核在 DMW 窗口访问物理内存）
-#define PA2DMW(pa) ((uint64)(pa) | DMWIN0_MASK)
-// 将 DMW VA 转为物理地址 (PA)
-#define DMW2PA(va) ((uint64)(va) & ~DMWIN0_MASK)
+
 
 // QEMU LoongArch 串口基地址 (物理地址)
 #define UART0_PHYS 0x1fe001e0UL
@@ -45,8 +37,7 @@
 
 // TRAPFRAME / KSTACK 等（如你原来定义）用 MAXVA 和 PGSIZE 计算
 #define TRAPFRAME (MAXVA - PGSIZE)
-#define KSTACK(p) (TRAPFRAME - ((p)+1) * 2 * PGSIZE)
-
+#define KSTACK(p) (TRAPFRAME - ((p)+1)* 2*PGSIZE)
 
 // Physical memory layout
 

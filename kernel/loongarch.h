@@ -337,12 +337,16 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 // 定义页表配置参数 (以 Sv39 为准：9-9-9 索引)
-#define PTBASE    12U
-#define PTWIDTH   9U
+#define PTBASE  12U
+#define PTWIDTH  9U
 #define DIR1BASE  21U 
-#define DIR1WIDTH 9U
+#define DIR1WIDTH  9U
 #define DIR2BASE  30U
-#define DIR2WIDTH 9U
+#define DIR2WIDTH  9U 
+#define PTEWIDTH  0U
+#define DIR3BASE  39U
+#define DIR3WIDTH  9U
+#define DIR4WIDTH  0U
 
 #define PGSIZE 4096 // bytes per page
 #define PGSHIFT 12  // bits of offset within a page
@@ -351,33 +355,29 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
 
 // 页表标志位修改
-#define PTE_V     (1L << 0)    // 有效位 (Valid)
-#define PTE_D     (1L << 1)    // 脏位 (Dirty)，在 LoongArch 中用于表示“已修改”，通常配合 W 位使用
-#define PTE_PLV   (3L << 2)    // 权限级 (Privilege Level)，3L 代表用户态
-#define PTE_MAT   (1L << 4)    // 存储访问类型 (Memory Access Type)，通常设为 1L (Cached)
-#define PTE_P     (1L << 7)    // 物理页存在位 (Present)
-#define PTE_W     (1L << 8)    // 可写位 (Writable)
-#define PTE_NX    (1UL << 62)  // 不可执行 (Non-executable)
-#define PTE_NR    (1L << 61)   // 不可读 (Non-readable)
-
+#define PTE_V (1L << 0) // valid
+#define PTE_D (1L << 1) // dirty
+#define PTE_PLV (3L << 2) //privilege level
+#define PTE_MAT (1L << 4) //memory access type
+#define PTE_P (1L << 7) // physical page exists
+#define PTE_W (1L << 8) // writeable
+#define PTE_NX (1UL << 62) //non executable
+#define PTE_NR (1L << 61) //non readable
+#define PTE_RPLV (1UL << 63) //restricted privilege level enable
 // 对应 RISC-V 的 PTE_U (User)，LoongArch 使用 PLV=3
 #define PTE_U     (3L << 2)    // 用户可访问权限
 
 // --- 地址转换宏修改 ---
 // LoongArch 的物理地址在 PTE 中是直接 4K 对齐的（从第 12 位开始）
-#define PAMASK          (0xFFFFFFFFFUL << PGSHIFT) // 36位物理页号掩码
-#define PA2PTE(pa)      (((uint64)pa) & PAMASK)    // 物理地址转 PTE (保持 12 位对齐)
-#define PTE2PA(pte)     ((pte) & PAMASK)           // PTE 转物理地址
-
-// 提取标志位：LoongArch 的标志位包含低 12 位和最高几位（NX, NR 等）
-#define PTE_FLAGS(pte)  ((pte) & 0xE0000000000001FFUL)
-
+#define PAMASK          0xFFFFFFFFFUL << PGSHIFT
+#define PTE2PA(pte) (pte & PAMASK)
+// shift a physical address to the right place for a PTE.
+#define PA2PTE(pa) (((uint64)pa) & PAMASK)
+#define PTE_FLAGS(pte) ((pte) & 0xE0000000000001FFUL)
 // --- 多级页表索引修改 ---
 // 龙芯 LA64 的 Sv39 模式同样使用 9-9-9 结构
 #define PXMASK          0x1FF // 9 bits
 #define PXSHIFT(level)  (PGSHIFT+(9*(level)))
-#define PX(level, va)   ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
+#define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
 
-// 虚拟地址空间定义
-// LoongArch 用户空间通常在地址空间的低半部分
-#define MAXVA           (1L << (9 + 9 + 9 + 12 - 1)) // 256GB
+#define MAXVA (1L << (9 + 12 - 1)) //Lower half virtual address

@@ -10,38 +10,38 @@
 #include "fs.h"
 #include "file.h" // 确保能看到 NDEV 的定义（如果 NDEV 在 param.h 里，也要包含）
 
-
+__attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 void
-main(void)
+main()
 {
-  // 1. 基础输出初始化
-  consoleinit();
-  printfinit();
-  printf("\n\n==============================\n");
-  printf("xv6-loongarch: booting...\n");
-  printf("==============================\n");
-
-  // 2. 初始化物理内存分配器
-  printf("[1] main: calling kinit()...\n");
-  kinit();
-  printf("[1] main: kinit done\n");
-
-  // 3. 初始化内核页表
-  printf("[2] main: calling kvminit()...\n");
-  kvminit();
-  printf("[2] main: kvminit done\n");
-
- printf("[4] main: calling trapinit()...\n");
-  trapinit();
-
-  // --- 暴力测试开始 ---
-  printf("[Test] Direct Interrupt Test: enabling interrupts and spinning...\n");
-  
-  intr_on(); // 手动开启全局中断开关 (修改 CSR_CRMD 的 IE 位)
-
-  for(;;) {
-    // 啥也不干，就在这等中断
-    // 如果时钟中断配置成功，它会强行打断这个循环，跳到 kerneltrap
+   if(cpuid() == 0){
+    consoleinit();
+    printfinit();
+    
+    kinit();         // physical page allocator
+printf("kinit\n");
+    vminit();        // create kernel page table
+printf("vminit\n");
+    procinit();      // process table
+printf("procinit\n");
+    trapinit();      // trap vectors
+printf("trapinit\n");
+    apic_init();     // set up LS7A1000 interrupt controller
+//printf("apicinit\n");
+    extioi_init();   // extended I/O interrupt controller
+//printf("extioi_init\n");
+    binit();         // buffer cache
+//printf("binit\n");
+    iinit();         // inode table
+//printf("iinit\n");
+    fileinit();      // file table
+//printf("fileinit\n");
+    ramdiskinit();   // emulated hard disk
+printf("ramdiskinit\n");
+    userinit();      // first user process
+printf("userinit\n");
+    printf("hart %d starting\n", cpuid());
   }
-  // --- 暴力测试结束 ---
+  printf("start scheduler\n");
+    scheduler(); 
 }
