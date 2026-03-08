@@ -8,7 +8,6 @@ U=user
 OBJS = \
   $K/entry.o \
   $K/bio.o\
-  $K/start.o \
   $K/main.o \
   $K/printf.o \
   $K/console.o \
@@ -70,15 +69,9 @@ $K/kernel: $(OBJS) $K/kernel.ld
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
 # [cite_start]用户态初始代码编译 
-$U/initcode: $U/initcode.S
-	$(CC) $(CFLAGS) -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
-	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
-	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
-
 # QEMU 启动配置
 QEMU = qemu-system-loongarch64
-CPUS := 3
+CPUS := 1
 
 # LoongArch QEMU 必须指定适配的机器类型和驱动总线
 QEMUOPTS = -machine virt -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
@@ -142,3 +135,32 @@ UPROGS=\
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
 	xxd -i fs.img > kernel/ramdisk.h
+
+
+#$U/initcode: $U/initcode.S
+#	$(CC) $(CFLAGS) -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
+#	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
+#	# 重点：-j .text 强制只提取代码段内容
+#	$(OBJCOPY) -S -O binary -j .text $U/initcode.out $U/initcode
+#	xxd -i $U/initcode > $U/initcode.inc
+
+
+
+$U/usys.S : $U/usys.pl
+	perl $U/usys.pl > $U/usys.S
+
+$U/usys.o : $U/usys.S
+	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+
+$U/_forktest: $U/forktest.o $(ULIB)
+	# forktest has less library code linked in - needs to be small
+	# in order to be able to max out the proc table.
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
+	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+
+SH_FLAGS = -O -fno-omit-frame-pointer -ggdb -MD -march=loongarch64 -mabi=lp64s -ffreestanding -fno-common -nostdlib -I. -fno-stack-protector -fno-pie -no-pie -c -o
+
+$U/_sh: $U/sh.c $(ULIB)
+	$(CC) $(SH_FLAGS) $U/sh.o $U/sh.c
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_sh $U/sh.o $(ULIB)
+	$(OBJDUMP) -S $U/_sh > $U/sh.asm

@@ -39,7 +39,7 @@ _entry:
     add.d       $sp, $sp, $a0
 
 
-    bl          start
+    bl          main
 
 spin:
     b           spin

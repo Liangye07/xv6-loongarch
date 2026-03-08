@@ -21,7 +21,7 @@ struct context {
   uint64 s6;
   uint64 s7;
   uint64 s8;
-  uint64 fp;  // r22
+  //uint64 fp;  // r22
 };
 
 // 每个 CPU 的状态结构

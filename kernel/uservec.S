@@ -88,6 +88,8 @@ userret:
         # switch to the user page table.
         csrwr  $a1, LOONGARCH_CSR_PGDL
         invtlb 0x0,$zero,$zero
+        ld.d   $t0, $a0, 264
+        csrrd $t0, 0x6
 
         # put the saved user a0 in SAVE0, so we
         # can swap it with our a0 (TRAPFRAME) in the last step.
@@ -95,6 +97,7 @@ userret:
         csrwr  $t0, LOONGARCH_CSR_SAVE0
 
         # restore all but a0 from TRAPFRAME
+
         ld.d   $ra, $a0, 0
         ld.d   $tp, $a0, 8
         ld.d   $sp, $a0, 16

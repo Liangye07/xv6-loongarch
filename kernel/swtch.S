@@ -19,7 +19,6 @@ swtch:
         st.d $s6, $a0, 64
         st.d $s7, $a0, 72
         st.d $s8, $a0, 80
-        st.d $fp, $a0, 88
 
         # 从 new context (struct context *new) 恢复寄存器
         ld.d $ra, $a1, 0
@@ -33,7 +32,6 @@ swtch:
         ld.d $s6, $a1, 64
         ld.d $s7, $a1, 72
         ld.d $s8, $a1, 80
-        ld.d $fp, $a1, 88
         
         # 跳转回新进程 ra 记录的指令位置
         # 在 LoongArch 中，jirl $r0, $ra, 0 相当于 RISC-V 的 ret (jr ra)

@@ -37,7 +37,7 @@ kinit()
   printf("kinit: freeing from %p to %p (Safety limit: 127MB)\n", end, (void*)safe_ram_stop);
   
   freerange(end, (void*)safe_ram_stop);
-
+  //freerange((void*)0x9000000090000000, (void*)0x9000000098000000);
   printf("kinit: done\n");
 }
 
@@ -48,15 +48,16 @@ freerange(void *pa_start, void *pa_end)
   uint64 count = 0;
   // Align up to page boundary
   p = (char*)PGROUNDUP((uint64)pa_start);
+  //printf("start freerange\n");
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) {
     kfree(p);
     count++;
     // Increased frequency of progress reports to catch the exact stall point
     if(count % 2000 == 0) {
-      printf("freerange: freed %ld pages...\n", count);
+      //printf("freerange: freed %p pages...\n", count);
     }
   }
-  printf("freerange: total freed %ld pages.\n", count);
+  //printf("freerange: total freed %p pages.\n", count);
 }
 
 // Free the page of physical memory pointed at by pa.
@@ -67,20 +68,24 @@ kfree(void *pa)
 
   // Strict physical range check: 128MB limit
   // Note: ensure limit matches the memory actually provided by QEMU
-  uint64 limit = DMWIN0_MASK + 128 * 1024 * 1024;
+//  uint64 limit = DMWIN0_MASK + 128 * 1024 * 1024;
 
-  if(((uint64)pa % PGSIZE) != 0 || (uint64)pa < (uint64)end || (uint64)pa >= limit)
-    panic("kfree");
+//  if(((uint64)pa % PGSIZE) != 0 || (uint64)pa < (uint64)end || (uint64)pa >= limit)
+//    panic("kfree");
 
   // Fill with junk to catch dangling refs.
-  memset(pa, 1, PGSIZE);
-
+  //memset(pa, 1, PGSIZE);
+  //printf("kfree start\n");
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
+ // printf("1\n");
   r->next = kmem.freelist;
+ // printf("2\n");
   kmem.freelist = r;
+  //printf("3\n");
   release(&kmem.lock);
+  //printf("kfree finished\n");
 }
 
 // Allocate one 4096-byte page of physical memory.
