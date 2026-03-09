@@ -36,8 +36,8 @@ printf("trapinit\n");
 //printf("iinit\n");
     fileinit();      // file table
 //printf("fileinit\n");
-    ramdiskinit();   // emulated hard disk
-printf("ramdiskinit\n");
+    virtio_disk_init();   // virtio-pci hard disk
+printf("virtio_disk_init\n");
     userinit();      // first user process
 printf("userinit\n");
     printf("hart %d starting\n", cpuid());

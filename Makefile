@@ -34,7 +34,7 @@ OBJS = \
   $K/file.o \
   $K/exec.o \
   $K/log.o \
-  $K/ramdisk.o \
+  $K/virtio_disk.o \
   $K/bio.o \
   $K/string.o
 
@@ -157,7 +157,6 @@ UPROGS = \
 # =========================================================
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
-	xxd -i fs.img > kernel/ramdisk.h
 
 # =========================================================
 # QEMU
@@ -170,6 +169,8 @@ QEMUOPTS += -kernel $K/kernel
 QEMUOPTS += -m 256M
 QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-pci,drive=x0,disable-legacy=on,modern=on
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -o $@ $<
