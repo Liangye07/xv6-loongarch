@@ -170,7 +170,7 @@ QEMUOPTS += -m 256M
 QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
-QEMUOPTS += -device virtio-blk-pci,drive=x0,disable-legacy=on,modern=on
+QEMUOPTS += -device virtio-blk-pci,drive=x0
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -o $@ $<

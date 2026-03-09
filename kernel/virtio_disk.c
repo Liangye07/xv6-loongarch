@@ -308,18 +308,20 @@ void virtio_disk_init(void)
 
   for(int i=0;i<NUM;i++) disk.free[i]=1;
 
+  // did=0x1001 is transitional/legacy virtio-blk on many QEMU versions.
+  // Prefer legacy path to avoid mis-detecting modern caps and queue layout.
+  if(did == VIRTIO_PCI_DEVICE_BLK){
+    virtio_init_legacy(bus, dev, fn);
+    return;
+  }
+
   uint16 pstatus = pci_read16(bus, dev, fn, PCI_STATUS_OFF);
   if((pstatus & (1 << 4)) != 0){
-    // try modern path first when capability list exists
     uint8 cap_ptr = pci_read8(bus, dev, fn, PCI_CAP_PTR_OFF);
     if(cap_ptr)
       virtio_init_modern(bus, dev, fn);
-    else if(did == VIRTIO_PCI_DEVICE_BLK)
-      virtio_init_legacy(bus, dev, fn);
     else
       panic("virtio-pci no cap ptr");
-  } else if(did == VIRTIO_PCI_DEVICE_BLK){
-    virtio_init_legacy(bus, dev, fn);
   } else {
     panic("virtio-pci no cap-list");
   }
