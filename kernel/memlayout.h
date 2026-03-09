@@ -29,7 +29,7 @@
 //  - KERNBASE:    内核虚拟基址 (DMW 映射下的 VA)
 #define RAMBASE (0x200000UL | DMWIN0_MASK)
 //#define RAMSTOP (RAMBASE + 128*1024*1024)
-#define RAMSTOP (DMWIN0_MASK + 128*1024*1024)
+#define RAMSTOP (RAMBASE + 128*1024*1024)
 // ----------------------- 分页与页面大小 ------------------------------
 
 // MAXVA 指定用户/内核可用的虚拟地址上限（按需调整）

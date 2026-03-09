@@ -167,7 +167,7 @@ CPUS = 1
 
 QEMUOPTS = -machine virt
 QEMUOPTS += -kernel $K/kernel
-QEMUOPTS += -m 128M
+QEMUOPTS += -m 256M
 QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
 
