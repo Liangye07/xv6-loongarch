@@ -165,6 +165,8 @@ fs.img: mkfs/mkfs README $(UPROGS)
 # =========================================================
 QEMU = qemu-system-loongarch64
 CPUS = 2
+GDB ?= $(TOOLPREFIX)gdb
+GDBPORT ?= 1234
 
 QEMUOPTS = -machine virt
 QEMUOPTS += -kernel $K/kernel
@@ -173,6 +175,7 @@ QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-pci-non-transitional,drive=x0
+QEMU_GDBOPTS = -S -gdb tcp::$(GDBPORT)
 
 
 %.o: %.S
@@ -180,6 +183,12 @@ QEMUOPTS += -device virtio-blk-pci-non-transitional,drive=x0
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
+
+qemu-gdb: $K/kernel fs.img
+	$(QEMU) $(QEMUOPTS) $(QEMU_GDBOPTS)
+
+gdb: $K/kernel
+	$(GDB) -q $K/kernel -x tools/gdb/xv6.gdb -ex "target remote 127.0.0.1:$(GDBPORT)"
 
 # =========================================================
 # Dependency include
