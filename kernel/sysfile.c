@@ -16,6 +16,18 @@
 #include "file.h"
 #include "fcntl.h"
 
+static int
+streq(const char *a, const char *b)
+{
+  while(*a && *b){
+    if(*a != *b)
+      return 0;
+    a++;
+    b++;
+  }
+  return *a == *b;
+}
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -300,16 +312,22 @@ sys_open(void)
   if(omode & O_CREATE){
     ip = create(path, T_FILE, 0, 0);
     if(ip == 0){
+      if(myproc()->pid == 1 && streq(path, "/console"))
+        printf("dbg open: create failed path=%s omode=%d\n", path, omode);
       end_op();
       return -1;
     }
   } else {
     if((ip = namei(path)) == 0){
+      if(myproc()->pid == 1 && streq(path, "/console"))
+        printf("dbg open: namei failed path=%s omode=%d\n", path, omode);
       end_op();
       return -1;
     }
     ilock(ip);
     if(ip->type == T_DIR && omode != O_RDONLY){
+      if(myproc()->pid == 1 && streq(path, "/console"))
+        printf("dbg open: dir write blocked path=%s\n", path);
       iunlockput(ip);
       end_op();
       return -1;
@@ -317,18 +335,27 @@ sys_open(void)
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
+    if(myproc()->pid == 1 && streq(path, "/console"))
+      printf("dbg open: bad major path=%s type=%d major=%d minor=%d\n",
+             path, ip->type, ip->major, ip->minor);
     iunlockput(ip);
     end_op();
     return -1;
   }
 
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+    if(myproc()->pid == 1 && streq(path, "/console"))
+      printf("dbg open: alloc failed path=%s f=%p\n", path, f);
     if(f)
       fileclose(f);
     iunlockput(ip);
     end_op();
     return -1;
   }
+
+  if(myproc()->pid == 1 && streq(path, "/console"))
+    printf("dbg open: ok path=%s fd=%d type=%d major=%d\n",
+           path, fd, ip->type, ip->major);
 
   if(ip->type == T_DEVICE){
     f->type = FD_DEVICE;
@@ -379,9 +406,14 @@ sys_mknod(void)
      argint(1, &major) < 0 ||
      argint(2, &minor) < 0 ||
      (ip = create(path, T_DEVICE, major, minor)) == 0){
+    if(myproc()->pid == 1 && streq(path, "/console"))
+      printf("dbg mknod: failed path=%s major=%d minor=%d\n", path, major, minor);
     end_op();
     return -1;
   }
+  if(myproc()->pid == 1 && streq(path, "/console"))
+    printf("dbg mknod: ok path=%s major=%d minor=%d inum=%d\n",
+           path, major, minor, ip->inum);
   iunlockput(ip);
   end_op();
   return 0;
