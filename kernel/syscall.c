@@ -105,8 +105,6 @@ extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 
-static int pid1_syscall_budget = 200;
-
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -139,14 +137,7 @@ syscall(void)
 
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    uint64 ret = syscalls[num]();
-    p->trapframe->a0 = ret;
-    if(p->pid == 1 && pid1_syscall_budget > 0 &&
-       (num == SYS_open || num == SYS_mknod || num == SYS_dup ||
-        num == SYS_write || num == SYS_exec || num == SYS_fork || num == SYS_wait || num == SYS_read)){
-      printf("pid1 syscall num=%d ret=%d\n", num, (int)ret);
-      pid1_syscall_budget--;
-    }
+    p->trapframe->a0 = syscalls[num]();
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
