@@ -115,8 +115,8 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
-    printf("usertrap(): unexpected trapcause %lx pid=%d\n", csrrd_estat(), p->pid);
-    printf("            era=%ld badv=%lx\n", csrrd_era(), csrrd_badv());
+    printf("usertrap(): unexpected estat=%p pid=%d\n", csrrd_estat(), p->pid);
+    printf("            era=%p badv=%p\n", csrrd_era(), csrrd_badv());
     p->killed = 1;
   }
 
@@ -145,8 +145,8 @@ kerneltrap()
     panic("kerneltrap: interrupts enabled");
 
   if((which_dev = devintr()) == 0){
-    printf("estat %lx\n", csrrd_estat());
-    printf("era=%ld eentry=%ld\n", csrrd_era(), csrrd_eentry());
+    printf("estat=%p\n", csrrd_estat());
+    printf("era=%p eentry=%p\n", csrrd_era(), csrrd_eentry());
     panic("kerneltrap");
   }
 
@@ -183,6 +183,7 @@ clockintr()
 int
 devintr()
 {
+  static int unexpected_hwi_warn;
   uint32 estat = csrrd_estat();
   uint32 ecfg = csrrd_ecfg();
 
@@ -191,18 +192,33 @@ devintr()
 
     // irq indicates which device interrupted.
     uint64 irq = extioi_claim();
-    if(irq & (1UL << UART0_IRQ)){
+    uint64 uart_irq = irq & UART0_IRQ_MASK;
+    uint64 disk_irq = irq & PCIE_INTX_IRQ_MASK;
+    uint64 other_irq = irq & ~(UART0_IRQ_MASK | PCIE_INTX_IRQ_MASK);
+
+    if(uart_irq){
       uartintr();
 
     // tell the apic the device is
     // now allowed to interrupt again.
+      apic_complete(uart_irq);
+      extioi_complete(uart_irq);
+    }
 
-      extioi_complete(1UL << UART0_IRQ);
-    } else if(irq){
-       printf("unexpected interrupt irq=%d\n", irq);
+    if(disk_irq){
+      (void)disk_intr();
+      apic_complete(disk_irq);
+      extioi_complete(disk_irq);
+    }
 
-      apic_complete(irq); 
-      extioi_complete(irq);        
+    if(other_irq){
+      int disk_handled = disk_intr();
+      if(!disk_handled && unexpected_hwi_warn < 8){
+        printf("devintr: unexpected ext irq=%p\n", other_irq);
+        unexpected_hwi_warn++;
+      }
+      apic_complete(other_irq);
+      extioi_complete(other_irq);
     }
 
     return 1;
@@ -211,6 +227,9 @@ devintr()
 
     if(cpuid() == 0){
       clockintr();
+      // Some virtio-blk completions may be posted without a fresh external
+      // interrupt. Poll once per tick to guarantee forward progress.
+      (void)disk_intr();
     }
     
     // acknowledge the timer interrupt by clearing

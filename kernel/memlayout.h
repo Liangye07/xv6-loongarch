@@ -11,6 +11,14 @@
 // 供内核使用的 UART 虚拟地址（DMW1 映射）
 #define UART0 (UART0_PHYS | DMWIN1_MASK)
 #define UART0_IRQ 2
+#define UART0_IRQ_MASK (1UL << UART0_IRQ)
+
+// QEMU virt machine routes PCI INTx to PCH PIC IRQ 16..19.
+#define PCIE_INTX_BASE_IRQ 16
+#define PCIE_INTX_IRQ_MASK (0xFUL << PCIE_INTX_BASE_IRQ)
+
+// IRQ lines explicitly used by xv6 kernel right now.
+#define KERNEL_EXT_IRQ_MASK (UART0_IRQ_MASK | PCIE_INTX_IRQ_MASK)
 
 // LS7A 桥片寄存器基地址 (物理地址)
 #define LS7A_PCH_REG_BASE		(0x10000000UL | DMWIN1_MASK)

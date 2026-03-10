@@ -6,13 +6,19 @@
 
 void extioi_init(void)
 {
-    iocsr_writeq(0x1UL << UART0_IRQ, LOONGARCH_IOCSR_EXTIOI_EN_BASE);  
+    // Enable all EXTIOI lines; trap.c filters and acks per source.
+    iocsr_writeq(~0UL, LOONGARCH_IOCSR_EXTIOI_EN_BASE);
 
-    iocsr_writeq(0x01UL,LOONGARCH_IOCSR_EXTIOI_MAP_BASE);
+    // Route EXTIOI[31:0] to CPU interrupt pin INT1.
+    iocsr_writeq(0x01UL, LOONGARCH_IOCSR_EXTIOI_MAP_BASE);
 
-    iocsr_writeq(0x10000UL,LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE);
+    // Route IRQ 0..31 to core 0 (node type 0), in groups.
+    // This must include IRQ18 for virtio-blk INTx delivery.
+    for(int i = 0; i < 4; i++)
+      iocsr_writeq(0x0UL, LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE + i * 8);
 
-    iocsr_writeq(0x1,LOONGARCH_IOCSR_EXRIOI_NODETYPE_BASE);
+    // Node type 0 -> node 0.
+    iocsr_writeq(0x1UL, LOONGARCH_IOCSR_EXRIOI_NODETYPE_BASE);
 }
 
 // ask the extioi what interrupt we should serve.

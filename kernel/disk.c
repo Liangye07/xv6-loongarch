@@ -78,6 +78,7 @@ static struct {
   uint16 used_idx;
 
   struct {
+    struct buf *b;
     char status;
   } info[NUM];
 
@@ -390,6 +391,7 @@ free_desc(int i)
   disk.desc[i].flags = 0;
   disk.desc[i].next = 0;
   disk.free[i] = 1;
+  wakeup(&disk.free[0]);
 }
 
 static void
@@ -543,7 +545,7 @@ disk_rw(struct buf *b, int write)
 
   int idx[3];
   while(alloc3_desc(idx) < 0)
-    ;
+    sleep(&disk.free[0], &disk.lock);
 
   struct virtio_blk_req *req = &disk.ops[idx[0]];
   req->type = write ? VIRTIO_BLK_T_OUT : VIRTIO_BLK_T_IN;
@@ -561,10 +563,14 @@ disk_rw(struct buf *b, int write)
   disk.desc[idx[1]].next = idx[2];
 
   disk.info[idx[0]].status = 0xff;
+  disk.info[idx[0]].b = b;
   disk.desc[idx[2]].addr = kva2pa((uint64)&disk.info[idx[0]].status);
   disk.desc[idx[2]].len = 1;
   disk.desc[idx[2]].flags = VRING_DESC_F_WRITE;
   disk.desc[idx[2]].next = 0;
+
+  // Completion interrupt will clear this and wake us.
+  b->disk = 1;
 
   uint16 avail_idx = disk.avail->idx;
   disk.avail->ring[avail_idx % NUM] = idx[0];
@@ -574,29 +580,52 @@ disk_rw(struct buf *b, int write)
 
   v_kick_queue0();
 
-  uint64 spin = 0;
-  while(disk.used_idx == disk.used->idx){
-    spin++;
-    if(spin > (1UL<<31)){
-      printf("disk: timeout blk=%d desc_pa=%p avail_pa=%p used_pa=%p\n",
-             b->blockno,
-             (void*)kva2pa((uint64)disk.desc),
-             (void*)kva2pa((uint64)disk.avail),
-             (void*)kva2pa((uint64)disk.used));
-      panic("virtio timeout");
-    }
-  }
+  while(b->disk == 1)
+    sleep(b, &disk.lock);
 
-  __sync_synchronize();
-  int id = disk.used->ring[disk.used_idx % NUM].id;
-  disk.used_idx++;
-
-  if(disk.info[id].status != 0){
-    printf("disk: virtio bad status=%d blk=%d id=%d\n", disk.info[id].status, b->blockno, id);
-    panic("virtio bad status");
-  }
-
-  free_chain(id);
+  disk.info[idx[0]].b = 0;
+  free_chain(idx[0]);
 
   release(&disk.lock);
+}
+
+int
+disk_intr(void)
+{
+  if(disk.use_ramdisk || !disk.ready)
+    return 0;
+
+  acquire(&disk.lock);
+
+  // Reading ISR acknowledges legacy INTx interrupts for virtio-pci.
+  uint8 isr = 0;
+  if(disk.isr)
+    isr = *disk.isr;
+
+  __sync_synchronize();
+
+  int handled = 0;
+  while(disk.used_idx != disk.used->idx){
+    __sync_synchronize();
+    int id = disk.used->ring[disk.used_idx % NUM].id;
+
+    if(id < 0 || id >= NUM)
+      panic("disk intr id");
+    if(disk.info[id].status != 0){
+      printf("disk: virtio bad status=%d id=%d\n", disk.info[id].status, id);
+      panic("virtio bad status");
+    }
+    if(disk.info[id].b){
+      disk.info[id].b->disk = 0;
+      wakeup(disk.info[id].b);
+    }
+    disk.used_idx++;
+    handled = 1;
+  }
+
+  if(isr & 0x3)
+    handled = 1;
+
+  release(&disk.lock);
+  return handled;
 }

@@ -201,3 +201,4 @@ void            ramdiskrw(struct buf*, int write);
 // disk.c
 void            disk_init(void);
 void            disk_rw(struct buf*, int write);
+int             disk_intr(void);
