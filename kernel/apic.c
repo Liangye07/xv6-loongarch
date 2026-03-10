@@ -11,8 +11,8 @@
 void
 apic_init(void)
 {
-  // Unmask all external lines. Specific dispatch is done in trap.c.
-  *(volatile uint64*)(LS7A_INT_MASK_REG) = 0x0UL;
+  // Only unmask IRQs currently used by xv6.
+  *(volatile uint64*)(LS7A_INT_MASK_REG) = ~KERNEL_EXT_IRQ_MASK;
 
   // Keep UART in level-trigger mode. Edge mode can lose subsequent RX
   // interrupts once the line stays asserted.

@@ -76,6 +76,7 @@ static struct {
 
   char free[NUM];
   uint16 used_idx;
+  int inflight;
 
   struct {
     struct buf *b;
@@ -571,6 +572,7 @@ disk_rw(struct buf *b, int write)
 
   // Completion interrupt will clear this and wake us.
   b->disk = 1;
+  disk.inflight++;
 
   uint16 avail_idx = disk.avail->idx;
   disk.avail->ring[avail_idx % NUM] = idx[0];
@@ -618,6 +620,8 @@ disk_intr(void)
     if(disk.info[id].b){
       disk.info[id].b->disk = 0;
       wakeup(disk.info[id].b);
+      if(disk.inflight > 0)
+        disk.inflight--;
     }
     disk.used_idx++;
     handled = 1;
@@ -628,4 +632,16 @@ disk_intr(void)
 
   release(&disk.lock);
   return handled;
+}
+
+int
+disk_pending(void)
+{
+  if(disk.use_ramdisk || !disk.ready)
+    return 0;
+
+  acquire(&disk.lock);
+  int pending = (disk.inflight > 0);
+  release(&disk.lock);
+  return pending;
 }

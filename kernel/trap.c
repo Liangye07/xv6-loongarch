@@ -212,8 +212,7 @@ devintr()
     }
 
     if(other_irq){
-      int disk_handled = disk_intr();
-      if(!disk_handled && unexpected_hwi_warn < 8){
+      if(unexpected_hwi_warn < 8){
         printf("devintr: unexpected ext irq=%p\n", other_irq);
         unexpected_hwi_warn++;
       }
@@ -227,9 +226,9 @@ devintr()
 
     if(cpuid() == 0){
       clockintr();
-      // Some virtio-blk completions may be posted without a fresh external
-      // interrupt. Poll once per tick to guarantee forward progress.
-      (void)disk_intr();
+      // Safety net for rare lost completion interrupts while requests are pending.
+      if(disk_pending())
+        (void)disk_intr();
     }
     
     // acknowledge the timer interrupt by clearing

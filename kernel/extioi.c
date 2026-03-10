@@ -6,8 +6,8 @@
 
 void extioi_init(void)
 {
-    // Enable all EXTIOI lines; trap.c filters and acks per source.
-    iocsr_writeq(~0UL, LOONGARCH_IOCSR_EXTIOI_EN_BASE);
+    // Enable only IRQs currently used by xv6.
+    iocsr_writeq(KERNEL_EXT_IRQ_MASK, LOONGARCH_IOCSR_EXTIOI_EN_BASE);
 
     // Route EXTIOI[31:0] to CPU interrupt pin INT1.
     iocsr_writeq(0x01UL, LOONGARCH_IOCSR_EXTIOI_MAP_BASE);
