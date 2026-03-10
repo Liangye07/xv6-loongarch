@@ -18,7 +18,6 @@ tlbinit(void)
 void
 vminit(void)//todo
 {
-  printf("start vminit");
   pagetable_t kpgtbl;
 
   kpgtbl = (pagetable_t) kalloc();

@@ -332,6 +332,8 @@ reparent(struct proc *p)
 void
 exit(int status)
 {
+  if(myproc() && myproc()->pid == 1)
+    printf("exit: pid=1 status=%d\n", status);
   struct proc *p = myproc();
 
   if(p == initproc)
@@ -444,12 +446,14 @@ scheduler(void)
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
+
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
+
         c->proc = 0;
       }
       release(&p->lock);

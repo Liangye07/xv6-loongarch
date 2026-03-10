@@ -33,12 +33,8 @@ kinit()
   //uint64 max_pa = (128 - 1) * 1024 * 1024; 
   //uint64 safe_ram_stop = DMWIN0_MASK + max_pa;
 
-  printf("kinit: kernel ends at %p\n", end);
-  //printf("kinit: freeing from %p to %p (Safety limit: 127MB)\n", end, (void*)safe_ram_stop);
-  printf("kinit: freeing from %p to %p\n", end, (void*)RAMSTOP);
   freerange(end, (void*)RAMSTOP);
   //freerange((void*)0x9000000090000000, (void*)0x9000000098000000);
-  printf("kinit: done\n");
 }
 
 void
@@ -48,7 +44,6 @@ freerange(void *pa_start, void *pa_end)
   uint64 count = 0;
   // Align up to page boundary
   p = (char*)PGROUNDUP((uint64)pa_start);
-  printf("start freerange\n");
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) {
     kfree(p);
     count++;
@@ -57,7 +52,7 @@ freerange(void *pa_start, void *pa_end)
       //printf("freerange: freed %p pages...\n", count);
     }
   }
-  printf("freerange: total freed %p pages.\n", count);
+  (void)count;
 }
 
 // Free the page of physical memory pointed at by pa.

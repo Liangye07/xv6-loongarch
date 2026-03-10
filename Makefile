@@ -36,6 +36,7 @@ OBJS = \
   $K/log.o \
   $K/ramdisk.o \
   $K/bio.o \
+  $K/disk.o \
   $K/string.o
 
 # =========================================================
@@ -163,13 +164,16 @@ fs.img: mkfs/mkfs README $(UPROGS)
 # QEMU
 # =========================================================
 QEMU = qemu-system-loongarch64
-CPUS = 1
+CPUS = 2
 
 QEMUOPTS = -machine virt
 QEMUOPTS += -kernel $K/kernel
 QEMUOPTS += -m 256M
 QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-pci-non-transitional,drive=x0
+
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -o $@ $<

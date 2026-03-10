@@ -381,3 +381,16 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
 #define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
 
 #define MAXVA (1L << (9 + 12 - 1)) //Lower half virtual address
+
+// SAVE0: 0x30 scratch register used by trap entry trampoline
+static inline uint64 csrrd_save0()
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x30" : "=r" (x) );
+  return x;
+}
+
+static inline void csrwr_save0(uint64 x)
+{
+  asm volatile("csrwr %0, 0x30" : : "r" (x));
+}

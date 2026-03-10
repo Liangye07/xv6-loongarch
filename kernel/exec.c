@@ -20,42 +20,36 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
+  int failstage = 0;
 
   begin_op();
 
   if((ip = namei(path)) == 0){
+    if(p->pid == 1)
+      printf("exec: namei failed path=%s\n", path);
     end_op();
     return -1;
   }
   ilock(ip);
 
   // Check ELF header
-  if(readi(ip, 0, (uint64)&elf, 0, sizeof(elf)) != sizeof(elf))
-    goto bad;
-  if(elf.magic != ELF_MAGIC)
-    goto bad;
+  if(readi(ip, 0, (uint64)&elf, 0, sizeof(elf)) != sizeof(elf)){ failstage=1; goto bad; }
+  if(elf.magic != ELF_MAGIC){ failstage=2; goto bad; }
 
-  if((pagetable = proc_pagetable(p)) == 0)
-    goto bad;
+  if((pagetable = proc_pagetable(p)) == 0){ failstage=3; goto bad; }
 
   // Load program into memory.
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
-    if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph))
-      goto bad;
+    if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph)){ failstage=4; goto bad; }
     if(ph.type != ELF_PROG_LOAD)
       continue;
-    if(ph.memsz < ph.filesz)
-      goto bad;
-    if(ph.vaddr + ph.memsz < ph.vaddr)
-      goto bad;
+    if(ph.memsz < ph.filesz){ failstage=5; goto bad; }
+    if(ph.vaddr + ph.memsz < ph.vaddr){ failstage=6; goto bad; }
     uint64 sz1;
-    if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz)) == 0)
-      goto bad;
+    if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz)) == 0){ failstage=7; goto bad; }
     sz = sz1;
-    if((ph.vaddr % PGSIZE) != 0)
-      goto bad;
-    if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
-      goto bad;
+    if((ph.vaddr % PGSIZE) != 0){ failstage=8; goto bad; }
+    if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0){ failstage=9; goto bad; }
   }
   iunlockput(ip);
   end_op();
@@ -68,8 +62,7 @@ exec(char *path, char **argv)
   // Use the second as the user stack.
   sz = PGROUNDUP(sz);
   uint64 sz1;
-  if((sz1 = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0)
-    goto bad;
+  if((sz1 = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0){ failstage=10; goto bad; }
   sz = sz1;
   uvmclear(pagetable, sz-2*PGSIZE);
   sp = sz;
@@ -77,14 +70,11 @@ exec(char *path, char **argv)
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
-    if(argc >= MAXARG)
-      goto bad;
+    if(argc >= MAXARG){ failstage=11; goto bad; }
     sp -= strlen(argv[argc]) + 1;
     sp -= sp % 16; // loongarch sp must be 16-byte aligned
-    if(sp < stackbase)
-      goto bad;
-    if(copyout(pagetable, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
-      goto bad;
+    if(sp < stackbase){ failstage=12; goto bad; }
+    if(copyout(pagetable, sp, argv[argc], strlen(argv[argc]) + 1) < 0){ failstage=13; goto bad; }
     ustack[argc] = sp;
   }
   ustack[argc] = 0;
@@ -94,10 +84,8 @@ exec(char *path, char **argv)
   sp -= sp % 16;
 
 
-  if(sp < stackbase)
-    goto bad;
-  if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0)
-    goto bad;
+  if(sp < stackbase){ failstage=14; goto bad; }
+  if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0){ failstage=15; goto bad; }
 
   // arguments to user main(argc, argv)
   // argc is returned via the system call return
@@ -123,6 +111,8 @@ exec(char *path, char **argv)
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
+  if(p->pid == 1)
+    printf("exec: failed path=%s stage=%d\n", path, failstage);
   if(pagetable)
     proc_freepagetable(pagetable, sz);
   if(ip){

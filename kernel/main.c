@@ -19,29 +19,17 @@ main()
     printfinit();
     
     kinit();         // physical page allocator
-printf("kinit\n");
     vminit();        // create kernel page table
-printf("vminit\n");
     procinit();      // process table
-printf("procinit\n");
     trapinit();      // trap vectors
-printf("trapinit\n");
     apic_init();     // set up LS7A1000 interrupt controller
-//printf("apicinit\n");
     extioi_init();   // extended I/O interrupt controller
-//printf("extioi_init\n");
     binit();         // buffer cache
-//printf("binit\n");
     iinit();         // inode table
-//printf("iinit\n");
     fileinit();      // file table
-//printf("fileinit\n");
-    ramdiskinit();   // emulated hard disk
-printf("ramdiskinit\n");
+    disk_init();     // virtio-pci disk (fallback to ramdisk)
     userinit();      // first user process
-printf("userinit\n");
     printf("hart %d starting\n", cpuid());
   }
-  printf("start scheduler\n");
-    scheduler(); 
+  scheduler();
 }
