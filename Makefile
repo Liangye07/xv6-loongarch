@@ -34,6 +34,7 @@ OBJS = \
   $K/file.o \
   $K/exec.o \
   $K/log.o \
+  $K/disk.o \
   $K/ramdisk.o \
   $K/bio.o \
   $K/string.o
@@ -170,6 +171,8 @@ QEMUOPTS += -kernel $K/kernel
 QEMUOPTS += -m 256M
 QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
+QEMUOPTS += -device virtio-blk-pci-non-transitional,drive=x0
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c -o $@ $<

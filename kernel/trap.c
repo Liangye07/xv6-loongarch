@@ -19,6 +19,7 @@ void userret(uint64, uint64);
 void usertrap(void);
 extern int devintr();
 
+
 /*
  * trapinit: 初始化全局 trap（一次性，设置 EENTRY）
  */
@@ -48,6 +49,8 @@ usertrapret(void)
 
   // send syscalls, interrupts, and exceptions to uservec.S
   csrwr_eentry((uint64)uservec);  //maybe todo
+  // uservec expects SAVE0 to hold TRAPFRAME VA on entry from user.
+  csrwr_save0(TRAPFRAME);
 
   // set up trapframe values that uservec will need when
   // the process next re-enters the kernel.
@@ -97,7 +100,6 @@ usertrap(void)
   
   if( ((csrrd_estat() & CSR_ESTAT_ECODE) >> 16) == 0xb){
     // system call
-
     if(p->killed)
       exit(-1);
 

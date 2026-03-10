@@ -112,6 +112,20 @@ static inline void csrwr_eentry(uint64 x)
   asm volatile("csrwr %0, 0xc" : : "r" (x) );
 }
 
+
+// SAVE0: 0x30 scratch register used by trap entry trampoline
+static inline uint64 csrrd_save0()
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x30" : "=r" (x) );
+  return x;
+}
+
+static inline void csrwr_save0(uint64 x)
+{
+  asm volatile("csrwr %0, 0x30" : : "r" (x));
+}
+
 // ECFG：0x4 中断屏蔽字
 static inline uint64 csrrd_ecfg()
 {

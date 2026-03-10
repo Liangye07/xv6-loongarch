@@ -40,11 +40,15 @@ readsb(int dev, struct superblock *sb)
 // Init fs
 void
 fsinit(int dev) {
+  printf("fsinit: start dev=%d\n", dev);
   readsb(dev, &sb);
+  printf("fsinit: sb magic=0x%x size=%d nblocks=%d\n", sb.magic, sb.size, sb.nblocks);
   if(sb.magic != FSMAGIC)
     panic("invalid file system");
   initlog(dev, &sb);
+  printf("fsinit: initlog done\n");
   ireclaim(dev);
+  printf("fsinit: ireclaim done\n");
 }
 
 // Zero a block.

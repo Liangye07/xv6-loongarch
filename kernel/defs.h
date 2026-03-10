@@ -194,6 +194,10 @@ void            pipeclose(struct pipe*, int);
 int             piperead(struct pipe*, uint64, int);
 int             pipewrite(struct pipe*, uint64, int);
 
+// disk.c
+void            disk_init(void);
+void            disk_rw(struct buf*, int write);
+
 // ramdisk.c
 void            ramdiskinit(void);
 void            ramdiskrw(struct buf*, int write);
