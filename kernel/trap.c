@@ -191,24 +191,21 @@ devintr()
     // this is a hardware interrupt, via IOCR.
 
     // irq indicates which device interrupted.
-    uint64 irq = extioi_claim();
+    // On LoongArch QEMU/LS7A, EXTIOI claim can occasionally miss a still
+    // asserted level line. Fold in LS7A pending bits so service+ack doesn't stall.
+    uint64 irq_claim = extioi_claim();
+    uint64 irq_apic = *(volatile uint64*)(LS7A_INT_STATUS_REG) & KERNEL_EXT_IRQ_MASK;
+    uint64 irq = irq_claim | irq_apic;
     uint64 uart_irq = irq & UART0_IRQ_MASK;
     uint64 disk_irq = irq & PCIE_INTX_IRQ_MASK;
     uint64 other_irq = irq & ~(UART0_IRQ_MASK | PCIE_INTX_IRQ_MASK);
 
     if(uart_irq){
       uartintr();
-
-    // tell the apic the device is
-    // now allowed to interrupt again.
-      apic_complete(uart_irq);
-      extioi_complete(uart_irq);
     }
 
     if(disk_irq){
       (void)disk_intr();
-      apic_complete(disk_irq);
-      extioi_complete(disk_irq);
     }
 
     if(other_irq){
@@ -216,8 +213,12 @@ devintr()
         printf("devintr: unexpected ext irq=%p\n", other_irq);
         unexpected_hwi_warn++;
       }
-      apic_complete(other_irq);
-      extioi_complete(other_irq);
+    }
+
+    if(irq){
+      // tell interrupt controllers these lines are now served.
+      apic_complete(irq);
+      extioi_complete(irq);
     }
 
     return 1;
@@ -226,9 +227,15 @@ devintr()
 
     if(cpuid() == 0){
       clockintr();
-      // Safety net for rare lost completion interrupts while requests are pending.
-      if(disk_pending())
+
+      // If EXTIOI missed a level-triggered PCI INTx, LS7A status still shows
+      // the line asserted. Service and ack it here to avoid stuck completions.
+      uint64 disk_stuck_irq = *(volatile uint64*)(LS7A_INT_STATUS_REG) & PCIE_INTX_IRQ_MASK;
+      if(disk_stuck_irq){
         (void)disk_intr();
+        apic_complete(disk_stuck_irq);
+        extioi_complete(disk_stuck_irq);
+      }
     }
     
     // acknowledge the timer interrupt by clearing

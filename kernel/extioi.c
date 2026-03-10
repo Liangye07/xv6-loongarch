@@ -12,10 +12,18 @@ void extioi_init(void)
     // Route EXTIOI[31:0] to CPU interrupt pin INT1.
     iocsr_writeq(0x01UL, LOONGARCH_IOCSR_EXTIOI_MAP_BASE);
 
-    // Route IRQ 0..31 to core 0 (node type 0), in groups.
-    // This must include IRQ18 for virtio-blk INTx delivery.
+    // Route only used IRQs to core 0 (node type 0).
+    // Each route byte corresponds to one IRQ; value 1 targets core 0.
     for(int i = 0; i < 4; i++)
       iocsr_writeq(0x0UL, LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE + i * 8);
+
+    uint64 route0 = (0x1UL << (UART0_IRQ * 8)); // IRQ2
+    iocsr_writeq(route0, LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE + 0 * 8);
+
+    uint64 route2 = 0;
+    for(int irq = PCIE_INTX_BASE_IRQ; irq < PCIE_INTX_BASE_IRQ + 4; irq++)
+      route2 |= (0x1UL << ((irq - PCIE_INTX_BASE_IRQ) * 8)); // IRQ16..19
+    iocsr_writeq(route2, LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE + 2 * 8);
 
     // Node type 0 -> node 0.
     iocsr_writeq(0x1UL, LOONGARCH_IOCSR_EXRIOI_NODETYPE_BASE);
