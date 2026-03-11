@@ -167,6 +167,9 @@ QEMU = qemu-system-loongarch64
 CPUS = 2
 GDB ?= $(TOOLPREFIX)gdb
 GDBPORT ?= 1234
+PYTHON ?= python3
+REGRESS_ROUNDS ?= 10
+QEMU_MINIMAL ?= 1
 
 QEMUOPTS = -machine virt
 QEMUOPTS += -kernel $K/kernel
@@ -175,6 +178,11 @@ QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -nographic
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-pci-non-transitional,drive=x0
+ifeq ($(QEMU_MINIMAL),1)
+# Minimize default virt-machine devices to reduce interrupt noise.
+QEMUOPTS += -nodefaults
+QEMUOPTS += -serial mon:stdio
+endif
 QEMU_GDBOPTS = -S -gdb tcp::$(GDBPORT)
 
 
@@ -189,6 +197,10 @@ qemu-gdb: $K/kernel fs.img
 
 gdb: $K/kernel
 	$(GDB) -q $K/kernel -x tools/gdb/xv6.gdb -ex "target remote 127.0.0.1:$(GDBPORT)"
+
+# low-noise disk interrupt stability regression (stressfs + forktest)
+regress-diskirq: $K/kernel fs.img
+	$(PYTHON) tools/regress/stressfs_forktest.py --rounds $(REGRESS_ROUNDS)
 
 # =========================================================
 # Dependency include
