@@ -46,7 +46,7 @@ class QEMU(object):
     def save_output(self):
       try:
         with open("test-xv6.out", "w") as f:
-            f.write(self.out)
+            f.write(self.output)
             f.close()
       except OSError as e:
         print("Provided a bad results path. Error:", e)     
@@ -77,7 +77,9 @@ class QEMU(object):
     def lines(self):
         return self.output.splitlines()
 
-    def error(self):
+    def error(self, regexps=None):
+        if regexps is None:
+            regexps = ()
         print("FAIL: match failed", regexps)
         self.save_output()
         self.stop()
@@ -91,7 +93,7 @@ class QEMU(object):
                 print(line)
                 last = i
         if last == -1 and exit:
-            self.error()
+            self.error(regexps)
         l = ""
         if last >= 0:
             l = lines[last]
@@ -123,38 +125,44 @@ def recover_log():
     q = QEMU()
     time.sleep(2)
     q.read()
-    ok, _ = q.match('^recovering', exit=False)
-    if ok:
-        q.cmd("ls\n")
-        time.sleep(2)
-        q.read()
-        q.match('f5')
+    q.cmd("ls\n")
+    time.sleep(2)
+    q.read()
+    ok, _ = q.match(r'.*\bf5\b', exit=False)
+
+    # Use behavior checks instead of kernel debug text matching.
+    q.cmd("echo logok > _logcheck\n")
+    time.sleep(1)
+    q.read()
+    q.cmd("cat _logcheck\n")
+    time.sleep(1)
+    q.read()
+    cat_ok, _ = q.match(r'^logok$', exit=False)
+    q.cmd("rm _logcheck\n")
+    time.sleep(1)
+    q.read()
+
+    ok = ok and cat_ok
     q.stop()
     return ok
 
 def forphan():
     q = QEMU(True)
     q.cmd("forphan\n")
-    time.sleep(5)
-    q.read()
-    q.match('wait')
+    q.monitor(r'.*wait for kill and reclaim', progress=r'^\$ ', timeout=30)
     q.crash()
     q.stop()
 
 def dorphan():
     q = QEMU(True)
     q.cmd("dorphan\n")
-    time.sleep(5)
-    q.read()
-    q.match('wait')
+    q.monitor(r'.*wait for kill and reclaim', progress=r'^\$ ', timeout=30)
     q.crash()
     q.stop()
 
 def recover_orphan():
     q = QEMU()
-    time.sleep(2)
-    q.read()
-    q.match('^ireclaim')
+    q.monitor(r'^ireclaim', progress=r'^\$ ', timeout=30)
     q.stop()
 
 def test_log():
