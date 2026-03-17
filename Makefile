@@ -82,6 +82,8 @@ $K/kernel: $(OBJS) $K/kernel.ld
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
+$K/proc.o: $K/initcode.h
+
 # =========================================================
 # User library
 # =========================================================
@@ -107,6 +109,21 @@ $U/usys.S: $U/usys.pl
 
 $U/usys.o: $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+
+# =========================================================
+# Initcode image for the very first user process
+# =========================================================
+$U/initcode.o: $U/initcode.S
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$U/initcode.out: $U/initcode.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $@ $<
+
+$U/initcode: $U/initcode.out
+	$(OBJCOPY) -S -O binary $< $@
+
+$K/initcode.h: $U/initcode
+	xxd -i $< > $@
 
 # =========================================================
 # Special rule: forktest
@@ -216,7 +233,8 @@ clean:
 	rm -f $K/kernel fs.img
 	rm -f mkfs/mkfs
 	rm -f $U/usys.S
+	rm -f $U/initcode.out $U/initcode $K/initcode.h
 	rm -f $(UPROGS)
 
-# Prevent deleting intermediate .o files
-.PRECIOUS: %.o
+# Prevent deleting intermediate build artifacts that are reused.
+.PRECIOUS: %.o $U/initcode.out $U/initcode $K/initcode.h

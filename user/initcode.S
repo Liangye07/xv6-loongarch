@@ -1,31 +1,32 @@
 # Initial process that execs /init.
-# This code runs in user space.
+# This code runs in user space and is copied into the first user page.
 
-#include "syscall.h"
+#include "kernel/syscall.h"
 
-# exec(init, argv)
 .globl start
 start:
-	ori	$a0, $zero, 28
-	ori	$a1, $zero, 40
-        li.d	$a7, SYS_exec
-        syscall 0
+	pcaddu12i $a0, 0
+	ld.d      $a0, $a0, 64
+	pcaddu12i $a1, 0
+	ld.d      $a1, $a1, 64
+	li.w      $a7, SYS_exec
+	syscall   0
 
-# for(;;) exit();
 exit:
-        li.d	$a7, SYS_exit
-        syscall 0
-        bl	exit
+	li.w      $a7, SYS_exit
+	syscall   0
+	b         exit
 
-# char init[] = "/init\0";
 init:
-  .string "/init\0"
+	.string   "/init"
+	.byte     0, 0
 
-# char *argv[] = { init, 0 };
-.p2align 3
 argv:
-  .long init
-  .long 0
-  .long 0
-argc:
-  .long 0
+	.dword    init
+	.dword    0
+	.word     0
+
+initptr:
+	.dword    init
+argvptr:
+	.dword    argv
