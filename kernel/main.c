@@ -10,7 +10,6 @@
 #include "fs.h"
 #include "file.h" // 确保能看到 NDEV 的定义（如果 NDEV 在 param.h 里，也要包含）
 
-__attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 void
 main()
 {

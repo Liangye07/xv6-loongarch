@@ -9,6 +9,7 @@ U = user
 # =========================================================
 OBJS = \
   $K/entry.o \
+  $K/start.o \
   $K/main.o \
   $K/printf.o \
   $K/console.o \

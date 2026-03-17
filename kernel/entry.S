@@ -31,7 +31,7 @@ _entry:
     la          $sp, stack0
     li.d        $a0, 4096             # 4KB per CPU
     csrrd       $a1, LOONGARCH_CSR_CPUID
-    # 顺手把 CPUID 给 $tp，虽然 start.c 还会设一遍，但这能保证 bl start 前 $tp 可用
+    # 先把 CPUID 给 $tp，后续 start.c/main.c 可以直接通过 cpuid() 取到当前 hart
     add.d       $tp, $a1, $zero       
     
     addi.d      $a1, $a1, 1
@@ -39,7 +39,7 @@ _entry:
     add.d       $sp, $sp, $a0
 
 
-    bl          main
+    bl          start
 
 spin:
     b           spin
