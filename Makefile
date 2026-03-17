@@ -200,7 +200,7 @@ gdb: $K/kernel
 
 # low-noise disk interrupt stability regression (stressfs + forktest)
 regress-diskirq: $K/kernel fs.img
-	$(PYTHON) tools/regress/stressfs_forktest.py --rounds $(REGRESS_ROUNDS)
+	$(PYTHON) tools/tests/xv6_test.py diskirq --rounds $(REGRESS_ROUNDS)
 
 # =========================================================
 # Dependency include

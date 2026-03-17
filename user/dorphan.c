@@ -3,7 +3,7 @@
 #include "kernel/fcntl.h"
 #include "user/user.h"
 
-// Create an orphaned directory and check if test-xv6.py recovers it.
+// Create an orphaned directory and check if the host-side test runner recovers it.
 
 #define BUFSZ 500
 
