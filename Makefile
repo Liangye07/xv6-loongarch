@@ -26,7 +26,7 @@ OBJS = \
   $K/sysproc.o \
   $K/sysfile.o \
   $K/tlbrefill.o \
-  $K/merror.o \
+  $K/merrvec.o \
   $K/uservec.o \
   $K/apic.o \
   $K/extioi.o \
@@ -182,7 +182,7 @@ fs.img: mkfs/mkfs README $(UPROGS)
 # QEMU
 # =========================================================
 QEMU = qemu-system-loongarch64
-CPUS = 2
+CPUS = 1
 GDB ?= $(TOOLPREFIX)gdb
 GDBPORT ?= 1234
 PYTHON ?= python3

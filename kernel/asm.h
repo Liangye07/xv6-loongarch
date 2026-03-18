@@ -2,6 +2,7 @@
 #define LOONGARCH_CSR_CPUID		    0x20	/* CPU core id */
 
 #define LOONGARCH_CSR_SAVE0		    0x30    /* Kscratch registers */
+#define LOONGARCH_CSR_SAVE1		    0x31
 
 #define LOONGARCH_CSR_DMWIN0		0x180	/* 64 direct map win0: MEM & IF */
 #define LOONGARCH_CSR_DMWIN1		0x181	/* 64 direct map win1: MEM & IF */
@@ -14,3 +15,4 @@
 #define LOONGARCH_CSR_TLBRENTRY		0x88	/* TLB refill exception entry */
 #define LOONGARCH_CSR_TLBRBADV		0x89	/* TLB refill badvaddr */
 #define LOONGARCH_CSR_TLBRSAVE		0x8b	/* KScratch for TLB refill exception */
+#define LOONGARCH_CSR_MERRSAVE		0x95	/* KScratch for machine error exception */

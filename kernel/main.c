@@ -13,7 +13,7 @@
 void
 main()
 {
-   if(cpuid() == 0){
+  if(cpuid() == 0){
     consoleinit();
     printfinit();
     
@@ -30,5 +30,6 @@ main()
     userinit();      // first user process
     printf("hart %d starting\n", cpuid());
   }
+  trapinithart();
   scheduler();
 }

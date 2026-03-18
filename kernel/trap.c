@@ -14,26 +14,28 @@ uint ticks;
 void kernelvec();
 void uservec();
 void handle_tlbr();
-void handle_merr();
+void merrvec();
 void userret(uint64, uint64);
 
 void usertrap(void);
 extern int devintr();
 
-/*
- * trapinit: 初始化全局 trap（一次性，设置 EENTRY）
- */
 void
 trapinit(void)
 {
   initlock(&tickslock, "time");
+}
+
+void
+trapinithart(void)
+{
   uint32 ecfg = ( 0U << CSR_ECFG_VS_SHIFT ) | HWI_VEC | TI_VEC;
   uint64 tcfg = 0x1000000UL | CSR_TCFG_EN | CSR_TCFG_PER;
   csrwr_ecfg(ecfg);
   csrwr_tcfg(tcfg);
   csrwr_eentry((uint64)kernelvec);
   csrwr_tlbrentry((uint64)handle_tlbr);
-  csrwr_merrentry((uint64)handle_merr);
+  csrwr_merrentry((uint64)merrvec);
   intr_on();
 }
 
@@ -160,9 +162,13 @@ kerneltrap()
   csrwr_prmd(prmd);
 }
 
-void 
-machine_trap()
+void
+merrtrap()
 {
+  printf("merrtrap: cpuid=%d merrctl=%p merrera=%p\n",
+         (int)r_cpuid(), csrrd_merrctl(), csrrd_merrera());
+  printf("          merrinfo1=%p merrinfo2=%p\n",
+         csrrd_merrinfo1(), csrrd_merrinfo2());
   panic("machine error");
 }
 

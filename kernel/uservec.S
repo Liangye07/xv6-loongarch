@@ -24,6 +24,7 @@ uservec:
         # so that a0 is TRAPFRAME
         #csrwr  $a0, LOONGARCH_CSR_SAVE0
 
+        csrwr  $t0, LOONGARCH_CSR_SAVE1
         csrrd  $t0, LOONGARCH_CSR_SAVE0
         csrwr  $a0, LOONGARCH_CSR_SAVE0
         add.d  $a0, $t0, $zero
@@ -39,6 +40,7 @@ uservec:
         st.d   $a5, $a0, 64
         st.d   $a6, $a0, 72
         st.d   $a7, $a0, 80
+        csrrd  $t0, LOONGARCH_CSR_SAVE1
         st.d   $t0, $a0, 88
         st.d   $t1, $a0, 96
         st.d   $t2, $a0, 104
@@ -99,6 +101,8 @@ userret:
         # can swap it with our a0 (TRAPFRAME) in the last step.
         ld.d   $t0, $a0, 24
         csrwr  $t0, LOONGARCH_CSR_SAVE0
+        ld.d   $t0, $a0, 88
+        csrwr  $t0, LOONGARCH_CSR_SAVE1
 
         # restore all but a0 from TRAPFRAME
 
@@ -112,7 +116,6 @@ userret:
         ld.d   $a5, $a0, 64
         ld.d   $a6, $a0, 72
         ld.d   $a7, $a0, 80
-        ld.d   $t0, $a0, 88
         ld.d   $t1, $a0, 96
         ld.d   $t2, $a0, 104
         ld.d   $t3, $a0, 112
@@ -138,6 +141,7 @@ userret:
         csrrd  $t0, LOONGARCH_CSR_SAVE0
         csrwr  $a0, LOONGARCH_CSR_SAVE0
         add.d  $a0, $t0, $zero
+        csrrd  $t0, LOONGARCH_CSR_SAVE1
         
         # return to user mode and user pc.
         # usertrapret() set up prmd and era.

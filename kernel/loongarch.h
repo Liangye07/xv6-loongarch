@@ -270,6 +270,38 @@ csrwr_merrentry(uint64 x)
 {
   asm volatile("csrwr %0, 0x93" : : "r" (x) );
 }
+
+static inline uint64
+csrrd_merrctl(void)
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x90" : "=r" (x) );
+  return x;
+}
+
+static inline uint64
+csrrd_merrinfo1(void)
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x91" : "=r" (x) );
+  return x;
+}
+
+static inline uint64
+csrrd_merrinfo2(void)
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x92" : "=r" (x) );
+  return x;
+}
+
+static inline uint64
+csrrd_merrera(void)
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x94" : "=r" (x) );
+  return x;
+}
 //TLB 重填例外入口地址
 static inline void csrwr_tlbrentry(uint64 x)
 {
@@ -393,4 +425,16 @@ static inline uint64 csrrd_save0()
 static inline void csrwr_save0(uint64 x)
 {
   asm volatile("csrwr %0, 0x30" : : "r" (x));
+}
+
+static inline uint64 csrrd_save1()
+{
+  uint64 x;
+  asm volatile("csrrd %0, 0x31" : "=r" (x) );
+  return x;
+}
+
+static inline void csrwr_save1(uint64 x)
+{
+  asm volatile("csrwr %0, 0x31" : : "r" (x));
 }

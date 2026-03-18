@@ -139,11 +139,11 @@ void            syscall();
 extern uint     ticks;
 extern struct spinlock tickslock;
 void            trapinit(void);
-//void            trapinithart(void);
+void            trapinithart(void);
 void            kerneltrap(void);
 void            usertrapret(void);
 void            usertrap(void);
-void            machine_trap(void);
+void            merrtrap(void) __attribute__((noreturn));
 // 确保声明了汇编调用的入口
 // void         prepare_return(void); // 如果你还没写 usertrap，先注释掉
 // uart.c

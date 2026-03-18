@@ -10,6 +10,7 @@
 struct context {
   uint64 ra;
   uint64 sp;
+  uint64 fp;
 
   // callee-saved registers
   uint64 s0;
@@ -21,7 +22,6 @@ struct context {
   uint64 s6;
   uint64 s7;
   uint64 s8;
-  //uint64 fp;  // r22
 };
 
 // 每个 CPU 的状态结构
