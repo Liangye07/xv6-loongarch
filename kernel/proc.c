@@ -63,7 +63,9 @@ procinit(void)
 int
 cpuid()
 {
-  int id = r_cpuid();
+  // Keep cpuid source consistent with uservec/trapframe kernel_hartid path:
+  // tp is set from hardware CPUID at boot and restored on each user->kernel trap.
+  int id = rd_tp();
   return id;
 }
 
