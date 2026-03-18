@@ -1,6 +1,5 @@
 #include "types.h"
 #include "param.h"
-#include "loongarch.h"
 
 void main(void);
 
@@ -11,9 +10,6 @@ __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
 void
 start(void)
 {
-  uint64 id = r_cpuid();
-
-  asm volatile("move $tp, %0" : : "r" (id));
   main();
 
   for(;;)

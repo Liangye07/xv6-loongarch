@@ -4,6 +4,18 @@
 #include "loongarch.h"
 #include "defs.h"
 
+static uint64
+extioi_claim_raw(void)
+{
+    return iocsr_readq(LOONGARCH_IOCSR_EXTIOI_ISR_BASE);
+}
+
+static void
+extioi_complete_raw(uint64 irq)
+{
+    iocsr_writeq(irq, LOONGARCH_IOCSR_EXTIOI_ISR_BASE);
+}
+
 void extioi_init(void)
 {
     // Enable only IRQs currently used by xv6.
@@ -29,14 +41,27 @@ void extioi_init(void)
     iocsr_writeq(0x1UL, LOONGARCH_IOCSR_EXRIOI_NODETYPE_BASE);
 }
 
-// ask the extioi what interrupt we should serve.
 uint64
-extioi_claim(void)
+extirq_claim(void)
 {
-    return iocsr_readq(LOONGARCH_IOCSR_EXTIOI_ISR_BASE);
+    // EXTIOI can occasionally miss a still-asserted level interrupt; OR in
+    // LS7A pending bits so the trap path sees the full external IRQ set.
+    return (extioi_claim_raw() | ls7a_intc_pending()) & KERNEL_EXT_IRQ_MASK;
 }
 
-void extioi_complete(uint64 irq)
+uint64
+extirq_compensate(uint64 irq_mask)
 {
-    iocsr_writeq(irq, LOONGARCH_IOCSR_EXTIOI_ISR_BASE);
+    return ls7a_intc_pending() & irq_mask & KERNEL_EXT_IRQ_MASK;
+}
+
+void
+extirq_complete(uint64 irq)
+{
+    irq &= KERNEL_EXT_IRQ_MASK;
+    if(irq == 0)
+      return;
+
+    ls7a_intc_complete(irq);
+    extioi_complete_raw(irq);
 }

@@ -14,6 +14,9 @@
 #define UART0_IRQ_MASK (1UL << UART0_IRQ)
 
 // QEMU virt machine routes PCI INTx to PCH PIC IRQ 16..19.
+// xv6 currently treats this bank as the single virtio-blk disk interrupt
+// source; if more PCI INTx devices are enabled later, the dispatch logic
+// should be tightened to the exact device IRQ.
 #define PCIE_INTX_BASE_IRQ 16
 #define PCIE_INTX_IRQ_MASK (0xFUL << PCIE_INTX_BASE_IRQ)
 

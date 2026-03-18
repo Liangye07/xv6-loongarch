@@ -196,12 +196,9 @@ devintr()
   if(estat & ecfg & HWI_VEC) {
     // this is a hardware interrupt, via IOCR.
 
-    // irq indicates which device interrupted.
-    // On LoongArch QEMU/LS7A, EXTIOI claim can occasionally miss a still
-    // asserted level line. Fold in LS7A pending bits so service+ack doesn't stall.
-    uint64 irq_claim = extioi_claim();
-    uint64 irq_apic = *(volatile uint64*)(LS7A_INT_STATUS_REG) & KERNEL_EXT_IRQ_MASK;
-    uint64 irq = irq_claim | irq_apic;
+    // extirq_claim() folds together EXTIOI's claimed lines and LS7A's
+    // pending-level fallback so trap.c can stay device-focused.
+    uint64 irq = extirq_claim();
     uint64 uart_irq = irq & UART0_IRQ_MASK;
     uint64 disk_irq = irq & PCIE_INTX_IRQ_MASK;
     uint64 other_irq = irq & ~(UART0_IRQ_MASK | PCIE_INTX_IRQ_MASK);
@@ -211,6 +208,9 @@ devintr()
     }
 
     if(disk_irq){
+      // We currently route only one PCI INTx-backed disk device. As long as no
+      // other PCI INTx devices are enabled, treating INTx[16:19] as disk IRQs
+      // keeps the dispatch path simple.
       (void)disk_intr();
     }
 
@@ -222,9 +222,7 @@ devintr()
     }
 
     if(irq){
-      // tell interrupt controllers these lines are now served.
-      apic_complete(irq);
-      extioi_complete(irq);
+      extirq_complete(irq);
     }
 
     return 1;
@@ -234,13 +232,12 @@ devintr()
     if(cpuid() == 0){
       clockintr();
 
-      // If EXTIOI missed a level-triggered PCI INTx, LS7A status still shows
-      // the line asserted. Service and ack it here to avoid stuck completions.
-      uint64 disk_stuck_irq = *(volatile uint64*)(LS7A_INT_STATUS_REG) & PCIE_INTX_IRQ_MASK;
+      // If EXTIOI missed a level-triggered PCI INTx, compensate from LS7A's
+      // pending bits to avoid a stuck disk completion.
+      uint64 disk_stuck_irq = extirq_compensate(PCIE_INTX_IRQ_MASK);
       if(disk_stuck_irq){
         (void)disk_intr();
-        apic_complete(disk_stuck_irq);
-        extioi_complete(disk_stuck_irq);
+        extirq_complete(disk_stuck_irq);
       }
     }
     

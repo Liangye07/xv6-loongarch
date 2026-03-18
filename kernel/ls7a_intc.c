@@ -9,7 +9,7 @@
 //
 
 void
-apic_init(void)
+ls7a_intc_init(void)
 {
   // Only unmask IRQs currently used by xv6.
   *(volatile uint64*)(LS7A_INT_MASK_REG) = ~KERNEL_EXT_IRQ_MASK;
@@ -28,9 +28,15 @@ apic_init(void)
 
 }
 
-// tell the apic we've served this IRQ.
+uint64
+ls7a_intc_pending(void)
+{
+  return *(volatile uint64*)(LS7A_INT_STATUS_REG) & KERNEL_EXT_IRQ_MASK;
+}
+
+// Tell the LS7A interrupt controller these IRQ lines are now served.
 void
-apic_complete(uint64 irq)
+ls7a_intc_complete(uint64 irq)
 {
   *(volatile uint64*)(LS7A_INT_CLEAR_REG) = (irq);
 }

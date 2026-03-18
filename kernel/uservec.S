@@ -4,6 +4,7 @@
         # to a page boundary.
         #
 #include "asm.h"
+#include "trapframe.h"
 
 .section u_eentry
 .globl uservec
@@ -30,53 +31,53 @@ uservec:
         add.d  $a0, $t0, $zero
 
         # save the user registers in TRAPFRAME
-        st.d   $ra, $a0, 0
-        st.d   $tp, $a0, 8
-        st.d   $sp, $a0, 16
-        st.d   $a1, $a0, 32
-        st.d   $a2, $a0, 40
-        st.d   $a3, $a0, 48
-        st.d   $a4, $a0, 56
-        st.d   $a5, $a0, 64
-        st.d   $a6, $a0, 72
-        st.d   $a7, $a0, 80
+        st.d   $ra, $a0, TF_RA
+        st.d   $tp, $a0, TF_TP
+        st.d   $sp, $a0, TF_SP
+        st.d   $a1, $a0, TF_A1
+        st.d   $a2, $a0, TF_A2
+        st.d   $a3, $a0, TF_A3
+        st.d   $a4, $a0, TF_A4
+        st.d   $a5, $a0, TF_A5
+        st.d   $a6, $a0, TF_A6
+        st.d   $a7, $a0, TF_A7
         csrrd  $t0, LOONGARCH_CSR_SAVE1
-        st.d   $t0, $a0, 88
-        st.d   $t1, $a0, 96
-        st.d   $t2, $a0, 104
-        st.d   $t3, $a0, 112
-        st.d   $t4, $a0, 120
-        st.d   $t5, $a0, 128
-        st.d   $t6, $a0, 136
-        st.d   $t7, $a0, 144
-        st.d   $t8, $a0, 152
-        st.d   $r21, $a0,160
-        st.d   $fp, $a0, 168
-        st.d   $s0, $a0, 176
-        st.d   $s1, $a0, 184
-        st.d   $s2, $a0, 192
-        st.d   $s3, $a0, 200
-        st.d   $s4, $a0, 208
-        st.d   $s5, $a0, 216
-        st.d   $s6, $a0, 224
-        st.d   $s7, $a0, 232
-        st.d   $s8, $a0, 240
+        st.d   $t0, $a0, TF_T0
+        st.d   $t1, $a0, TF_T1
+        st.d   $t2, $a0, TF_T2
+        st.d   $t3, $a0, TF_T3
+        st.d   $t4, $a0, TF_T4
+        st.d   $t5, $a0, TF_T5
+        st.d   $t6, $a0, TF_T6
+        st.d   $t7, $a0, TF_T7
+        st.d   $t8, $a0, TF_T8
+        st.d   $r21, $a0, TF_R21
+        st.d   $fp, $a0, TF_FP
+        st.d   $s0, $a0, TF_S0
+        st.d   $s1, $a0, TF_S1
+        st.d   $s2, $a0, TF_S2
+        st.d   $s3, $a0, TF_S3
+        st.d   $s4, $a0, TF_S4
+        st.d   $s5, $a0, TF_S5
+        st.d   $s6, $a0, TF_S6
+        st.d   $s7, $a0, TF_S7
+        st.d   $s8, $a0, TF_S8
 
 	# save the user a0 in p->trapframe->a0
         csrrd  $t0, LOONGARCH_CSR_SAVE0
-        st.d   $t0, $a0, 24
+        st.d   $t0, $a0, TF_A0
 
         # restore kernel stack pointer from p->trapframe->kernel_sp
-        ld.d   $sp, $a0, 248
+        ld.d   $sp, $a0, TF_KERNEL_SP
 
         # make tp hold the current hartid, from p->trapframe->kernel_hartid
-        ld.d   $tp, $a0, 272
+        ld.d   $tp, $a0, TF_KERNEL_HARTID
 
         # load the address of usertrap(), p->trapframe->kernel_trap
-        ld.d   $t0, $a0, 256
+        ld.d   $t0, $a0, TF_KERNEL_TRAP
 
         # restore kernel page table from p->trapframe->kernel_pgdl
-        ld.d   $t1, $a0, 280
+        ld.d   $t1, $a0, TF_KERNEL_PGDL
         csrwr  $t1, LOONGARCH_CSR_PGDL
         invtlb 0x0,$zero,$zero
 
@@ -99,42 +100,42 @@ userret:
 
         # put the saved user a0 in SAVE0, so we
         # can swap it with our a0 (TRAPFRAME) in the last step.
-        ld.d   $t0, $a0, 24
+        ld.d   $t0, $a0, TF_A0
         csrwr  $t0, LOONGARCH_CSR_SAVE0
-        ld.d   $t0, $a0, 88
+        ld.d   $t0, $a0, TF_T0
         csrwr  $t0, LOONGARCH_CSR_SAVE1
 
         # restore all but a0 from TRAPFRAME
 
-        ld.d   $ra, $a0, 0
-        ld.d   $tp, $a0, 8
-        ld.d   $sp, $a0, 16
-        ld.d   $a1, $a0, 32
-        ld.d   $a2, $a0, 40
-        ld.d   $a3, $a0, 48
-        ld.d   $a4, $a0, 56
-        ld.d   $a5, $a0, 64
-        ld.d   $a6, $a0, 72
-        ld.d   $a7, $a0, 80
-        ld.d   $t1, $a0, 96
-        ld.d   $t2, $a0, 104
-        ld.d   $t3, $a0, 112
-        ld.d   $t4, $a0, 120
-        ld.d   $t5, $a0, 128
-        ld.d   $t6, $a0, 136
-        ld.d   $t7, $a0, 144
-        ld.d   $t8, $a0, 152
-        ld.d   $r21, $a0,160
-        ld.d   $fp, $a0, 168
-        ld.d   $s0, $a0, 176
-        ld.d   $s1, $a0, 184
-        ld.d   $s2, $a0, 192
-        ld.d   $s3, $a0, 200
-        ld.d   $s4, $a0, 208
-        ld.d   $s5, $a0, 216
-        ld.d   $s6, $a0, 224
-        ld.d   $s7, $a0, 232
-        ld.d   $s8, $a0, 240
+        ld.d   $ra, $a0, TF_RA
+        ld.d   $tp, $a0, TF_TP
+        ld.d   $sp, $a0, TF_SP
+        ld.d   $a1, $a0, TF_A1
+        ld.d   $a2, $a0, TF_A2
+        ld.d   $a3, $a0, TF_A3
+        ld.d   $a4, $a0, TF_A4
+        ld.d   $a5, $a0, TF_A5
+        ld.d   $a6, $a0, TF_A6
+        ld.d   $a7, $a0, TF_A7
+        ld.d   $t1, $a0, TF_T1
+        ld.d   $t2, $a0, TF_T2
+        ld.d   $t3, $a0, TF_T3
+        ld.d   $t4, $a0, TF_T4
+        ld.d   $t5, $a0, TF_T5
+        ld.d   $t6, $a0, TF_T6
+        ld.d   $t7, $a0, TF_T7
+        ld.d   $t8, $a0, TF_T8
+        ld.d   $r21, $a0, TF_R21
+        ld.d   $fp, $a0, TF_FP
+        ld.d   $s0, $a0, TF_S0
+        ld.d   $s1, $a0, TF_S1
+        ld.d   $s2, $a0, TF_S2
+        ld.d   $s3, $a0, TF_S3
+        ld.d   $s4, $a0, TF_S4
+        ld.d   $s5, $a0, TF_S5
+        ld.d   $s6, $a0, TF_S6
+        ld.d   $s7, $a0, TF_S7
+        ld.d   $s8, $a0, TF_S8
 
 	# restore user a0, and save TRAPFRAME in SAVE0
         #csrwr  $a0, LOONGARCH_CSR_SAVE0

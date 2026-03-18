@@ -31,8 +31,8 @@ _entry:
     la          $sp, stack0
     li.d        $a0, 4096             # 4KB per CPU
     csrrd       $a1, LOONGARCH_CSR_CPUID
-    # 先把 CPUID 给 $tp，后续 start.c/main.c 可以直接通过 cpuid() 取到当前 hart
-    add.d       $tp, $a1, $zero       
+    # Set tp once here as the authoritative hart id source for cpuid().
+    add.d       $tp, $a1, $zero
     
     addi.d      $a1, $a1, 1
     mul.d       $a0, $a0, $a1

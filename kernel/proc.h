@@ -4,6 +4,7 @@
 #include "types.h"
 #include "spinlock.h"
 #include "param.h"
+#include "trapframe.h"
 
 // 保存内核上下文切换时需要记录的寄存器 (Callee-saved)
 // 对应 swtch.S 中的保存与恢复逻辑
@@ -74,6 +75,44 @@ struct trapframe {
   /* 272 */ uint64 kernel_hartid; // 保存的内核 tp (CPU ID)
   /* 280 */ uint64 kernel_pgdl;   // 保存的内核页表基址
 };
+
+_Static_assert(__builtin_offsetof(struct trapframe, ra) == TF_RA, "trapframe ra");
+_Static_assert(__builtin_offsetof(struct trapframe, tp) == TF_TP, "trapframe tp");
+_Static_assert(__builtin_offsetof(struct trapframe, sp) == TF_SP, "trapframe sp");
+_Static_assert(__builtin_offsetof(struct trapframe, a0) == TF_A0, "trapframe a0");
+_Static_assert(__builtin_offsetof(struct trapframe, a1) == TF_A1, "trapframe a1");
+_Static_assert(__builtin_offsetof(struct trapframe, a2) == TF_A2, "trapframe a2");
+_Static_assert(__builtin_offsetof(struct trapframe, a3) == TF_A3, "trapframe a3");
+_Static_assert(__builtin_offsetof(struct trapframe, a4) == TF_A4, "trapframe a4");
+_Static_assert(__builtin_offsetof(struct trapframe, a5) == TF_A5, "trapframe a5");
+_Static_assert(__builtin_offsetof(struct trapframe, a6) == TF_A6, "trapframe a6");
+_Static_assert(__builtin_offsetof(struct trapframe, a7) == TF_A7, "trapframe a7");
+_Static_assert(__builtin_offsetof(struct trapframe, t0) == TF_T0, "trapframe t0");
+_Static_assert(__builtin_offsetof(struct trapframe, t1) == TF_T1, "trapframe t1");
+_Static_assert(__builtin_offsetof(struct trapframe, t2) == TF_T2, "trapframe t2");
+_Static_assert(__builtin_offsetof(struct trapframe, t3) == TF_T3, "trapframe t3");
+_Static_assert(__builtin_offsetof(struct trapframe, t4) == TF_T4, "trapframe t4");
+_Static_assert(__builtin_offsetof(struct trapframe, t5) == TF_T5, "trapframe t5");
+_Static_assert(__builtin_offsetof(struct trapframe, t6) == TF_T6, "trapframe t6");
+_Static_assert(__builtin_offsetof(struct trapframe, t7) == TF_T7, "trapframe t7");
+_Static_assert(__builtin_offsetof(struct trapframe, t8) == TF_T8, "trapframe t8");
+_Static_assert(__builtin_offsetof(struct trapframe, r21) == TF_R21, "trapframe r21");
+_Static_assert(__builtin_offsetof(struct trapframe, fp) == TF_FP, "trapframe fp");
+_Static_assert(__builtin_offsetof(struct trapframe, s0) == TF_S0, "trapframe s0");
+_Static_assert(__builtin_offsetof(struct trapframe, s1) == TF_S1, "trapframe s1");
+_Static_assert(__builtin_offsetof(struct trapframe, s2) == TF_S2, "trapframe s2");
+_Static_assert(__builtin_offsetof(struct trapframe, s3) == TF_S3, "trapframe s3");
+_Static_assert(__builtin_offsetof(struct trapframe, s4) == TF_S4, "trapframe s4");
+_Static_assert(__builtin_offsetof(struct trapframe, s5) == TF_S5, "trapframe s5");
+_Static_assert(__builtin_offsetof(struct trapframe, s6) == TF_S6, "trapframe s6");
+_Static_assert(__builtin_offsetof(struct trapframe, s7) == TF_S7, "trapframe s7");
+_Static_assert(__builtin_offsetof(struct trapframe, s8) == TF_S8, "trapframe s8");
+_Static_assert(__builtin_offsetof(struct trapframe, kernel_sp) == TF_KERNEL_SP, "trapframe kernel_sp");
+_Static_assert(__builtin_offsetof(struct trapframe, kernel_trap) == TF_KERNEL_TRAP, "trapframe kernel_trap");
+_Static_assert(__builtin_offsetof(struct trapframe, era) == TF_ERA, "trapframe era");
+_Static_assert(__builtin_offsetof(struct trapframe, kernel_hartid) == TF_KERNEL_HARTID, "trapframe kernel_hartid");
+_Static_assert(__builtin_offsetof(struct trapframe, kernel_pgdl) == TF_KERNEL_PGDL, "trapframe kernel_pgdl");
+_Static_assert(sizeof(struct trapframe) == TF_SIZE, "trapframe size");
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 

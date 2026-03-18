@@ -171,13 +171,15 @@ int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 
-// apic.c
-void            apic_init(void);
-void            apic_complete(uint64 irq);
+// ls7a_intc.c
+void            ls7a_intc_init(void);
+uint64          ls7a_intc_pending(void);
+void            ls7a_intc_complete(uint64 irq);
 // extioi.c
 void            extioi_init(void);
-uint64          extioi_claim(void);
-void            extioi_complete(uint64);
+uint64          extirq_claim(void);
+uint64          extirq_compensate(uint64 irq_mask);
+void            extirq_complete(uint64 irq);
 
 // virtio_disk.c
 void            virtio_disk_init(void);

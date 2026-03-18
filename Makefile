@@ -28,7 +28,7 @@ OBJS = \
   $K/tlbrefill.o \
   $K/merrvec.o \
   $K/uservec.o \
-  $K/apic.o \
+  $K/ls7a_intc.o \
   $K/extioi.o \
   $K/pipe.o \
   $K/fs.o \

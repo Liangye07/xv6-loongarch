@@ -21,7 +21,7 @@ main()
     vminit();        // create kernel page table
     procinit();      // process table
     trapinit();      // trap vectors
-    apic_init();     // set up LS7A1000 interrupt controller
+    ls7a_intc_init(); // set up LS7A1000 interrupt controller
     extioi_init();   // extended I/O interrupt controller
     binit();         // buffer cache
     iinit();         // inode table
