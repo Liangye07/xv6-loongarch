@@ -168,8 +168,8 @@ UPROGS = \
 	$U/_dorphan \
 	$U/_forphan \
 	$U/_logstress \
-	$U/_grind\
-   #$U/_usertests \
+	$U/_grind \
+	$U/_usertests \
 
 # =========================================================
 # File system image

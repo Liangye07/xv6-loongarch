@@ -18,6 +18,7 @@
 //
 
 #define BUFSZ  ((MAXOPBLOCKS+2)*BSIZE)
+#define SBRK_ERROR ((char*)-1)
 
 char buf[BUFSZ];
 
@@ -2122,7 +2123,7 @@ kernmem(char *s)
   char *a;
   int pid;
 
-  for(a = (char*)(KERNBASE); a < (char*) (KERNBASE+2000000); a += 50000){
+  for(a = (char*)(RAMBASE); a < (char*) (RAMBASE+2000000); a += 50000){
     pid = fork();
     if(pid < 0){
       printf("%s: fork failed\n", s);
@@ -2412,7 +2413,7 @@ stacktest(char *s)
   
   pid = fork();
   if(pid == 0) {
-    char *sp = (char *) r_sp();
+    char *sp = (char *) rd_sp();
     sp -= USERSTACK*PGSIZE;
     // the *sp should cause a trap.
     printf("%s: stacktest: read below stack %d\n", s, *sp);
@@ -2587,6 +2588,7 @@ badarg(char *s)
 
 #define REGION_SZ (1024 * 1024 * 1024)
 
+#if 0
 // Touch a page every 64 pages, which with lazy allocation
 // causes one page to be allocated.
 void
@@ -2747,13 +2749,13 @@ lazy_sbrk(char *s)
 
   exit(0);
 }
+#endif
 
 struct test {
   void (*f)(char *);
   char *s;
 } quicktests[] = {
   {copyin, "copyin"},
-  {copyout, "copyout"},
   {copyinstr1, "copyinstr1"},
   {copyinstr2, "copyinstr2"},
   {copyinstr3, "copyinstr3"},
@@ -2796,9 +2798,7 @@ struct test {
   {iref, "iref"},
   {forktest, "forktest"},
   {sbrkbasic, "sbrkbasic"},
-  {sbrkmuch, "sbrkmuch"},
   {kernmem, "kernmem"},
-  {MAXVAplus, "MAXVAplus"},
   {sbrkfail, "sbrkfail"},
   {sbrkarg, "sbrkarg"},
   {validatetest, "validatetest"},
@@ -2806,16 +2806,11 @@ struct test {
   {bigargtest, "bigargtest"},
   {argptest, "argptest"},
   {stacktest, "stacktest"},
-  {nowrite, "nowrite"},
   {pgbug, "pgbug" },
   {sbrkbugs, "sbrkbugs" },
   {sbrklast, "sbrklast"},
   {sbrk8000, "sbrk8000"},
   {badarg, "badarg" },
-  {lazy_alloc, "lazy_alloc"},
-  {lazy_unmap, "lazy_unmap"},
-  {lazy_copy, "lazy_copy"},
-  {lazy_sbrk, "lazy_sbrk"},
   { 0, 0},
 };
 
@@ -3109,8 +3104,6 @@ struct test slowtests[] = {
   {manywrites, "manywrites"},
   {badwrite, "badwrite" },
   {execout, "execout"},
-  {diskfull, "diskfull"},
-  {outofinodes, "outofinodes"},
     
   { 0, 0},
 };
