@@ -74,6 +74,8 @@ cpuid()
 struct cpu*
 mycpu(void) {
   int id = cpuid();
+  if(id < 0 || id >= NCPU)
+    panic("mycpu");
   struct cpu *c = &cpus[id];
   return c;
 }
@@ -208,6 +210,8 @@ userinit(void)
   struct proc *p;
 
   p = allocproc();
+  if(p == 0)
+    panic("userinit: allocproc");
   initproc = p;
   
   // Copy the generated initcode image from user/initcode.S.
@@ -220,6 +224,8 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/"); 
+  if(p->cwd == 0)
+    panic("userinit: namei");
 
   p->state = RUNNABLE;
 
@@ -231,13 +237,15 @@ userinit(void)
 int
 growproc(int n)
 {
-  uint sz;
+  uint64 sz;
   struct proc *p = myproc();
 
   sz = p->sz;
   if(n > 0){
-    if(sz+n>=MAXVA-PGSIZE)return -1;//trampoline
-    if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
+    uint64 newsz = sz + (uint64)n;
+    if(newsz < sz || newsz >= TRAPFRAME)
+      return -1;
+    if((sz = uvmalloc(p->pagetable, sz, newsz)) == 0) {
       return -1;
     }
   } else if(n < 0){
@@ -635,6 +643,7 @@ void
 procdump(void)
 {
   static char *states[] = {
+  [USED]      "used  ",
   [UNUSED]    "unused",
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",

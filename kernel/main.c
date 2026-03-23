@@ -10,6 +10,8 @@
 #include "fs.h"
 #include "file.h" // 确保能看到 NDEV 的定义（如果 NDEV 在 param.h 里，也要包含）
 
+static volatile int started;
+
 void
 main()
 {
@@ -29,7 +31,16 @@ main()
     disk_init();     // virtio-pci disk (fallback to ramdisk)
     userinit();      // first user process
     printf("hart %d starting\n", cpuid());
+
+    __sync_synchronize();
+    started = 1;
+  } else {
+    while(started == 0)
+      ;
+    __sync_synchronize();
   }
+
+  kvminithart();
   trapinithart();
   scheduler();
 }

@@ -75,6 +75,8 @@ sys_read(void)
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
     return -1;
+  if(n < 0)
+    return -1;
   return fileread(f, p, n);
 }
 
@@ -86,6 +88,8 @@ sys_write(void)
   uint64 p;
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
+    return -1;
+  if(n < 0)
     return -1;
 
   return filewrite(f, p, n);
@@ -243,6 +247,7 @@ create(char *path, short type, short major, short minor)
 {
   struct inode *ip, *dp;
   char name[DIRSIZ];
+  int dp_nlink_inc = 0;
 
   if((dp = nameiparent(path, name)) == 0)
     return 0;
@@ -258,8 +263,10 @@ create(char *path, short type, short major, short minor)
     return 0;
   }
 
-  if((ip = ialloc(dp->dev, type)) == 0)
-    panic("create: ialloc");
+  if((ip = ialloc(dp->dev, type)) == 0){
+    iunlockput(dp);
+    return 0;
+  }
 
   ilock(ip);
   ip->major = major;
@@ -269,18 +276,30 @@ create(char *path, short type, short major, short minor)
 
   if(type == T_DIR){  // Create . and .. entries.
     dp->nlink++;  // for ".."
+    dp_nlink_inc = 1;
     iupdate(dp);
     // No ip->nlink++ for ".": avoid cyclic ref count.
     if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
-      panic("create dots");
+      goto fail;
   }
 
   if(dirlink(dp, name, ip->inum) < 0)
-    panic("create: dirlink");
+    goto fail;
 
   iunlockput(dp);
 
   return ip;
+
+fail:
+  if(dp_nlink_inc){
+    dp->nlink--;
+    iupdate(dp);
+  }
+  iunlockput(dp);
+  ip->nlink = 0;
+  iupdate(ip);
+  iunlockput(ip);
+  return 0;
 }
 
 uint64

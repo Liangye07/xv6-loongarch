@@ -168,9 +168,8 @@ class QemuSession:
             check=True,
         )
         kids = [int(line.strip()) for line in ps.stdout.splitlines() if line.strip()]
-        if not kids:
-            raise TestFailure("no qemu child process found to crash")
-        os.kill(kids[0], signal.SIGKILL)
+        victim = kids[0] if kids else self.proc.pid
+        os.kill(victim, signal.SIGKILL)
         time.sleep(1)
         self.read_nonblocking()
 

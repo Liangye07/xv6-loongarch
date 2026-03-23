@@ -154,6 +154,7 @@ void            uartputc_sync(int);
 int             uartgetc(void);
 
 // vm.c
+void            kvminithart(void);
 void            tlbinit(void);
 void            vminit(void);
 pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);

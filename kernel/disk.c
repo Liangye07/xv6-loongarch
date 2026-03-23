@@ -303,7 +303,7 @@ virtio_pci_parse_caps(uint bus, uint dev, uint fun)
       if(bar < PCI_BAR_NUM)
         bar_base = pci_assign_bar_if_needed(bus, dev, fun, bar, len);
 
-      if(bar < PCI_BAR_NUM){
+      if(bar < PCI_BAR_NUM && bar_base != 0){
         uint64 addr = mmio_pa2va(bar_base + off);
         switch(cfg_type){
         case VIRTIO_PCI_CAP_COMMON_CFG:

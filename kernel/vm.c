@@ -6,6 +6,8 @@
 #include "defs.h"
 #include "fs.h"
 
+static pagetable_t kernel_pagetable;
+
 void
 tlbinit(void)
 {
@@ -16,19 +18,26 @@ tlbinit(void)
 }
 
 void
-vminit(void)//todo
+kvminithart(void)
 {
-  pagetable_t kpgtbl;
+  if(kernel_pagetable == 0)
+    panic("kvminithart");
 
-  kpgtbl = (pagetable_t) kalloc();
-  memset(kpgtbl, 0, PGSIZE);
-  proc_mapstacks(kpgtbl);
-
-  csrwr_pgdl((uint64)kpgtbl);
+  csrwr_pgdl((uint64)kernel_pagetable);
   tlbinit();
-
   csrwr_pwcl((PTEWIDTH << 30)|(DIR2WIDTH << 25)|(DIR2BASE << 20)|(DIR1WIDTH << 15)|(DIR1BASE << 10)|(PTWIDTH << 5)|(PTBASE << 0));
   csrwr_pwch((DIR4WIDTH << 18)|(DIR3WIDTH << 6)|(DIR3BASE << 0));
+}
+
+void
+vminit(void)//todo
+{
+  kernel_pagetable = (pagetable_t) kalloc();
+  if(kernel_pagetable == 0)
+    panic("vminit: kalloc");
+
+  memset(kernel_pagetable, 0, PGSIZE);
+  proc_mapstacks(kernel_pagetable);
 }
 
 // Return the address of the PTE in page table pagetable
@@ -94,14 +103,17 @@ walkaddr(pagetable_t pagetable, uint64 va)
 int
 mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, uint64 perm)
 {
-  uint64 a, last;
+  uint64 a, last, end;
   pte_t *pte;
 
   if(size == 0)
     panic("mappages: size");
-  
+
   a = PGROUNDDOWN(va);
-  last = PGROUNDDOWN(va + size - 1);
+  end = va + size - 1;
+  if(end < va)
+    return -1;
+  last = PGROUNDDOWN(end);
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
@@ -167,8 +179,14 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
   if(sz >= PGSIZE)
     panic("inituvm: more than a page");
   mem = kalloc();
+  if(mem == 0)
+    panic("uvminit: kalloc");
   memset(mem, 0, PGSIZE);
-  mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_P|PTE_W|PTE_PLV|PTE_MAT);
+  if(mappages(pagetable, 0, PGSIZE, (uint64)mem,
+              PTE_P|PTE_W|PTE_PLV|PTE_MAT|PTE_D) != 0){
+    kfree(mem);
+    panic("uvminit: mappages");
+  }
   memmove(mem, src, sz);
 }//todo
 
@@ -182,6 +200,8 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
   if(newsz < oldsz)
     return oldsz;
+  if(newsz >= TRAPFRAME)
+    return 0;
 
   oldsz = PGROUNDUP(oldsz);
   for(a = oldsz; a < newsz; a += PGSIZE){

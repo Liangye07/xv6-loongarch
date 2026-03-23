@@ -7,7 +7,7 @@
 #include "defs.h"
 #include "elf.h"
 
-static int loadseg(pde_t *pgdir, uint64 addr, struct inode *ip, uint offset, uint sz);
+static int loadseg(pagetable_t pagetable, uint64 addr, struct inode *ip, uint offset, uint sz);
 
 int
 exec(char *path, char **argv)
@@ -44,12 +44,14 @@ exec(char *path, char **argv)
     if(ph.type != ELF_PROG_LOAD)
       continue;
     if(ph.memsz < ph.filesz){ failstage=5; goto bad; }
-    if(ph.vaddr + ph.memsz < ph.vaddr){ failstage=6; goto bad; }
+    if((ph.vaddr % PGSIZE) != 0){ failstage=6; goto bad; }
+    uint64 segtop = ph.vaddr + ph.memsz;
+    if(segtop < ph.vaddr){ failstage=7; goto bad; }
+    if(segtop >= TRAPFRAME){ failstage=8; goto bad; }
     uint64 sz1;
-    if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz)) == 0){ failstage=7; goto bad; }
+    if((sz1 = uvmalloc(pagetable, sz, segtop)) == 0){ failstage=9; goto bad; }
     sz = sz1;
-    if((ph.vaddr % PGSIZE) != 0){ failstage=8; goto bad; }
-    if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0){ failstage=9; goto bad; }
+    if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0){ failstage=10; goto bad; }
   }
   iunlockput(ip);
   end_op();
@@ -61,8 +63,9 @@ exec(char *path, char **argv)
   // Allocate two pages at the next page boundary.
   // Use the second as the user stack.
   sz = PGROUNDUP(sz);
+  if(sz >= TRAPFRAME - 2*PGSIZE){ failstage=11; goto bad; }
   uint64 sz1;
-  if((sz1 = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0){ failstage=10; goto bad; }
+  if((sz1 = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0){ failstage=12; goto bad; }
   sz = sz1;
   uvmclear(pagetable, sz-2*PGSIZE);
   sp = sz;
@@ -70,11 +73,11 @@ exec(char *path, char **argv)
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
-    if(argc >= MAXARG){ failstage=11; goto bad; }
+    if(argc >= MAXARG){ failstage=13; goto bad; }
     sp -= strlen(argv[argc]) + 1;
     sp -= sp % 16; // loongarch sp must be 16-byte aligned
-    if(sp < stackbase){ failstage=12; goto bad; }
-    if(copyout(pagetable, sp, argv[argc], strlen(argv[argc]) + 1) < 0){ failstage=13; goto bad; }
+    if(sp < stackbase){ failstage=14; goto bad; }
+    if(copyout(pagetable, sp, argv[argc], strlen(argv[argc]) + 1) < 0){ failstage=15; goto bad; }
     ustack[argc] = sp;
   }
   ustack[argc] = 0;
@@ -84,8 +87,8 @@ exec(char *path, char **argv)
   sp -= sp % 16;
 
 
-  if(sp < stackbase){ failstage=14; goto bad; }
-  if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0){ failstage=15; goto bad; }
+  if(sp < stackbase){ failstage=16; goto bad; }
+  if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0){ failstage=17; goto bad; }
 
   // arguments to user main(argc, argv)
   // argc is returned via the system call return
