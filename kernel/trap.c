@@ -102,7 +102,7 @@ usertrap(void)
   if( ((csrrd_estat() & CSR_ESTAT_ECODE) >> 16) == 0xb){
     // system call
     
-    if(p->killed)
+    if(killed(p))
       exit(-1);
 
     // sepc points to the ecall instruction,
@@ -119,10 +119,12 @@ usertrap(void)
   } else {
     printf("usertrap(): unexpected estat=%p pid=%d\n", csrrd_estat(), p->pid);
     printf("            era=%p badv=%p\n", csrrd_era(), csrrd_badv());
+    acquire(&p->lock);
     p->killed = 1;
+    release(&p->lock);
   }
 
-  if(p->killed)
+  if(killed(p))
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
@@ -243,7 +245,7 @@ devintr()
     
     // acknowledge the timer interrupt by clearing
     // the TI bit in TICLR.
-    csrwr_ticlr(csrrd_ticlr() | CSR_TICLR_CLR);
+    csrwr_ticlr(CSR_TICLR_CLR);
 
     return 2;
   } else {

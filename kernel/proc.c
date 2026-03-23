@@ -399,7 +399,7 @@ wait(uint64 addr)
     }
 
     // No point waiting if we don't have any children.
-    if(!havekids || p->killed){
+    if(!havekids || killed(p)){
       release(&wait_lock);
       return -1;
     }
@@ -522,8 +522,10 @@ sleep(void *chan, struct spinlock *lk)
   // (wakeup locks p->lock),
   // so it's okay to release lk.
 
-  acquire(&p->lock);  //DOC: sleeplock1
-  release(lk);
+  if(lk != &p->lock){  //DOC: sleeplock1
+    acquire(&p->lock);
+    release(lk);
+  }
 
   // Go to sleep.
   p->chan = chan;
@@ -535,8 +537,12 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = 0;
 
   // Reacquire original lock.
-  release(&p->lock);
-  acquire(lk);
+  if(lk != &p->lock){
+    release(&p->lock);
+    acquire(lk);
+  } else {
+    release(&p->lock);
+  }
 }
 
 // Wake up all processes sleeping on chan.
@@ -560,6 +566,17 @@ wakeup(void *chan)
 // Kill the process with the given pid.
 // The victim won't exit until it tries to return
 // to user space (see usertrap() in trap.c).
+int
+killed(struct proc *p)
+{
+  int k;
+
+  acquire(&p->lock);
+  k = p->killed;
+  release(&p->lock);
+  return k;
+}
+
 int
 kill(int pid)
 {

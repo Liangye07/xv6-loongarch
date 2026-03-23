@@ -52,6 +52,8 @@ void uartstart();
 void
 uartinit(void)
 {
+  initlock(&uart_tx_lock, "uart");
+
   // disable interrupts.
   WriteReg(IER, 0x00);
 
@@ -73,8 +75,6 @@ uartinit(void)
 
   // enable transmit and receive interrupts.
   WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
-
-  initlock(&uart_tx_lock, "uart");
 }
 
 // add a character to the output buffer and tell the

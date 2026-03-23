@@ -43,6 +43,7 @@ consputc(int c)
 
 struct {
   struct spinlock lock;
+  struct spinlock write_lock;
   
   // input
 #define INPUT_BUF 128
@@ -61,12 +62,14 @@ consolewrite(int user_src, uint64 src, int n)
 {
   int i;
 
+  acquire(&cons.write_lock);
   for(i = 0; i < n; i++){
     char c;
     if(either_copyin(&c, user_src, src+i, 1) == -1)
       break;
     uartputc(c);
   }
+  release(&cons.write_lock);
 
   return i;
 }
@@ -90,7 +93,7 @@ consoleread(int user_dst, uint64 dst, int n)
     // wait until interrupt handler has put some
     // input into cons.buffer.
     while(cons.r == cons.w){
-      if(myproc()->killed){
+      if(killed(myproc())){
         release(&cons.lock);
         return -1;
       }
@@ -136,11 +139,13 @@ consoleread(int user_dst, uint64 dst, int n)
 void
 consoleintr(int c)
 {
+  int doprint = 0;
+
   acquire(&cons.lock);
 
   switch(c){
   case C('P'):  // Print process list.
-    procdump();
+    doprint = 1;
     break;
   case C('U'):  // Kill line.
     while(cons.e != cons.w &&
@@ -177,12 +182,16 @@ consoleintr(int c)
   }
   
   release(&cons.lock);
+
+  if(doprint)
+    procdump();
 }
 
 void
 consoleinit(void)
 {
   initlock(&cons.lock, "cons");
+  initlock(&cons.write_lock, "conswrite");
 
   uartinit();
 

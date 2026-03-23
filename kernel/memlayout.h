@@ -34,19 +34,13 @@
 #define LS7A_INT_POL_REG		LS7A_PCH_REG_BASE + 0x3e0
 
 // ----------------------- 物理内存布局 (PHYSICAL) --------------------
-// 物理地址 (PA) 语义：
-//  - RAMPHYSBASE: 物理 RAM 起点（例：0x80000000）
-//  - PHYSTOP:     物理 RAM 结束地址 (exclusive) —— 以字节为单位
-//  - KERNBASE:    内核虚拟基址 (DMW 映射下的 VA)
+// QEMU 当前通过 Makefile 以 `-m 256M` 启动，但内核页分配器目前只管理
+// 从 RAMBASE 开始的前 128 MiB DMW0 直映地址窗口。
 #define RAMBASE (0x200000UL | DMWIN0_MASK)
-//#define RAMSTOP (RAMBASE + 128*1024*1024)
 #define RAMSTOP (RAMBASE + 128*1024*1024)
 // ----------------------- 分页与页面大小 ------------------------------
 
-// MAXVA 指定用户/内核可用的虚拟地址上限（按需调整）
-//#define MAXVA ((1UL << 47) - 1)  // 47-bit canonical
-
-// TRAPFRAME / KSTACK 等（如你原来定义）用 MAXVA 和 PGSIZE 计算
+// TRAPFRAME / KSTACK 基于 loongarch.h 中定义的 47-bit lower-half MAXVA 计算。
 #define TRAPFRAME (MAXVA - PGSIZE)
 #define KSTACK(p) (TRAPFRAME - ((p)+1)* 2*PGSIZE)
 

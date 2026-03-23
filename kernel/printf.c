@@ -29,10 +29,12 @@ printint(int xx, int base, int sign)
   int i;
   uint x;
 
-  if(sign && (sign = xx < 0))
-    x = -xx;
+  if(sign && xx < 0){
+    sign = 1;
+    x = -(uint)xx;
+  }
   else
-    x = xx;
+    x = (uint)xx;
 
   i = 0;
   do {
@@ -85,7 +87,7 @@ printf(char *fmt, ...)
       printint(va_arg(ap, int), 10, 1);
       break;
     case 'x':
-      printint(va_arg(ap, int), 16, 1);
+      printint(va_arg(ap, int), 16, 0);
       break;
     case 'p':
       printptr(va_arg(ap, uint64));

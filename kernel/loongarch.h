@@ -1,3 +1,6 @@
+#ifndef LOONGARCH_H
+#define LOONGARCH_H
+
 #ifndef __ASSEMBLER__
 //--------------------------------------------------------------------------------------------------------------------------------------
 //io
@@ -200,8 +203,7 @@ static inline uint64 csrrd_tval()
 // TICLR：0x44 清除时钟中断标志 
 static inline void csrwr_ticlr(uint32 x)
 {
-  // 往 0x44 (TICLR) 的第 0 位写 1，表示告知硬件“中断已处理”
-  asm volatile("csrwr %0, 0x44" : : "r" (0x1));
+  asm volatile("csrwr %0, 0x44" : : "r" (x));
 }
 static inline uint32 csrrd_ticlr()
 {
@@ -338,6 +340,8 @@ typedef uint64 *pagetable_t; // 512 PTEs
 //-------------------------------------------------------------------------------------------------------------------------------------
 //IOCSR 访问函数，riscv里是io映射内存，因此需要新增这一部分
 
+#ifndef __ASSEMBLER__
+
 // 读取 32 位 (Word)
 static inline uint32 iocsr_readw(uint32 addr)
 {
@@ -366,9 +370,11 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
   asm volatile("iocsrwr.d %0, %1" : : "r"(val), "r"(addr));
 }
 
+#endif // __ASSEMBLER__
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------
-// 定义页表配置参数 (以 Sv39 为准：9-9-9 索引)
+// 定义页表配置参数（当前软件 walk 逻辑使用 4 级 9-9-9-9 索引）
 #define PTBASE  12U
 #define PTWIDTH  9U
 #define DIR1BASE  21U 
@@ -406,15 +412,16 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) (((uint64)pa) & PAMASK)
 #define PTE_FLAGS(pte) ((pte) & 0xE0000000000001FFUL)
-// --- 多级页表索引修改 ---
-// 龙芯 LA64 的 Sv39 模式同样使用 9-9-9 结构
+// --- 多级页表索引 ---
 #define PXMASK          0x1FF // 9 bits
 #define PXSHIFT(level)  (PGSHIFT+(9*(level)))
 #define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
 
-#define MAXVA (1L << (9 + 12 - 1)) //Lower half virtual address
+// Lower-half user virtual address ceiling for the current 4-level page-table layout.
+#define MAXVA (1ULL << (9 + 9 + 9 + 9 + 12 - 1))
 
 // SAVE0: 0x30 scratch register used by trap entry trampoline
+#ifndef __ASSEMBLER__
 static inline uint64 csrrd_save0()
 {
   uint64 x;
@@ -438,3 +445,6 @@ static inline void csrwr_save1(uint64 x)
 {
   asm volatile("csrwr %0, 0x31" : : "r" (x));
 }
+
+#endif // __ASSEMBLER__
+#endif // LOONGARCH_H
