@@ -7,7 +7,7 @@
 
 void freerange(void *pa_start, void *pa_end);
 
-// end[] is defined by kernel.ld, indicating the end of the kernel
+// First address after the kernel image; provided by kernel.ld.
 extern char end[];
 
 struct run {
@@ -23,36 +23,17 @@ void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  
-  // 1. Precise RAM limit based on your 128MB allocation.
-  // Physical RAM: 0x0 to 0x08000000.
-  // DMW0 Virtual Address: DMWIN0_MASK to DMWIN0_MASK + 0x08000000.
-  
-  // To avoid hitting the very edge of physical memory which might cause issues in QEMU,
-  // we leave a small safety gap (e.g., 1MB) at the end.
-  //uint64 max_pa = (128 - 1) * 1024 * 1024; 
-  //uint64 safe_ram_stop = DMWIN0_MASK + max_pa;
-
   freerange(end, (void*)RAMSTOP);
-  //freerange((void*)0x9000000090000000, (void*)0x9000000098000000);
 }
 
 void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  uint64 count = 0;
-  // Align up to page boundary
+
   p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) {
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
-    count++;
-    // Increased frequency of progress reports to catch the exact stall point
-    if(count % 2000 == 0) {
-      //printf("freerange: freed %p pages...\n", count);
-    }
-  }
-  (void)count;
 }
 
 // Free the page of physical memory pointed at by pa.
@@ -61,33 +42,20 @@ kfree(void *pa)
 {
   struct run *r;
 
-  // Strict physical range check: 128MB limit
-  // Note: ensure limit matches the memory actually provided by QEMU
-//  uint64 limit = DMWIN0_MASK + 128 * 1024 * 1024;
-
-//  if(((uint64)pa % PGSIZE) != 0 || (uint64)pa < (uint64)end || (uint64)pa >= limit)
-//    panic("kfree");
-
-  // Fill with junk to catch dangling refs.
-  //memset(pa, 1, PGSIZE);
-  //printf("kfree start\n");
+  // The allocator only manages the direct-mapped RAM window [RAMBASE, RAMSTOP).
   if(((uint64)pa % PGSIZE) != 0 || (uint64)pa < (uint64)end ||
      (uint64)pa < RAMBASE || (uint64)pa >= RAMSTOP)
     panic("kfree");
-  
-  
+
+  // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
-  
+
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
- // printf("1\n");
   r->next = kmem.freelist;
- // printf("2\n");
   kmem.freelist = r;
-  //printf("3\n");
   release(&kmem.lock);
-  //printf("kfree finished\n");
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -105,10 +73,9 @@ kalloc(void)
   release(&kmem.lock);
 
   if(r) {
-    memset((char*)r, 5, PGSIZE); // fill with junk
+    // Fill with junk to catch stale assumptions about page contents.
+    memset((char*)r, 5, PGSIZE);
   } else {
-    // If we reach here, walk() will typically panic.
-    // Adding a debug message to confirm kalloc exhaustion.
     printf("kalloc: out of memory!\n");
   }
   return (void*)r;

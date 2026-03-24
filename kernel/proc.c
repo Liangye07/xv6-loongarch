@@ -171,8 +171,8 @@ freeproc(struct proc *p)
   p->state = UNUSED;
 }
 
-// Create a user page table for a given process,
-// with no user memory, but with kstack pages.
+// Create an empty user page table for a given process.
+// The caller adds user mappings later; we only install the trapframe mapping here.
 
 pagetable_t
 proc_pagetable(struct proc *p)
@@ -184,7 +184,7 @@ proc_pagetable(struct proc *p)
   if(pagetable == 0)
     return 0;
 
-    // map the trapframe beneath 2 pages of KSTACK, for uservec.S.
+  // Map the trapframe just below the trampoline area for uservec.S.
   if(mappages(pagetable, TRAPFRAME, PGSIZE,
               (uint64)(p->trapframe), PTE_NX | PTE_P | PTE_W | PTE_MAT | PTE_D) < 0){
     uvmfree(pagetable, 0);

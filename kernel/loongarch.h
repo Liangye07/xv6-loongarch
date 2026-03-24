@@ -95,7 +95,7 @@ static inline uint64 csrrd_estat()
   return x;
 }
 
-//BADV：0x7 用于触发地址错误相关异常时，记录出错的虚地址，注意这里是记录出错的地址，例如地位未分配，并非 ERA 的 PC
+//BADV：0x7 记录地址相关异常对应的故障虚地址，并非 ERA 中保存的 PC
 static inline uint64 csrrd_badv()
 {
   uint64 x;
@@ -235,7 +235,7 @@ static inline uint64 csrrd_pgdl()
   return x;
 }
 
-// 拼接并写入 PGDL 的宏，类似于 RISC-V 的 MAKE_SATP
+// PGDL 直接保存页表基址。
 #define MAKE_PGDL(pagetable) ((uint64)pagetable)
 
 // invtlb：page95 刷新整个 TLB
@@ -338,7 +338,7 @@ typedef uint64 *pagetable_t; // 512 PTEs
 
 #endif // __ASSEMBLER__
 //-------------------------------------------------------------------------------------------------------------------------------------
-//IOCSR 访问函数，riscv里是io映射内存，因此需要新增这一部分
+// IOCSR 访问辅助函数
 
 #ifndef __ASSEMBLER__
 
@@ -402,7 +402,7 @@ static inline void iocsr_writeq(uint64 val, uint32 addr)
 #define PTE_NX (1UL << 62) //non executable
 #define PTE_NR (1L << 61) //non readable
 #define PTE_RPLV (1UL << 63) //restricted privilege level enable
-// 对应 RISC-V 的 PTE_U (User)，LoongArch 使用 PLV=3
+// 用户态页使用 PLV=3。
 #define PTE_U     (3L << 2)    // 用户可访问权限
 
 // --- 地址转换宏修改 ---

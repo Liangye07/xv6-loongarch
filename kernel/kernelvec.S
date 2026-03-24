@@ -1,6 +1,6 @@
         #
-        # interrupts and exceptions while in privilege0 (kernel)
-        # push registers, call kerneltrap(), restore, return.
+        # Trap entry while already running in kernel mode.
+        # Save registers, call kerneltrap(), restore registers, and return.
         #
         .section k_eentry
         .globl kerneltrap
@@ -8,13 +8,13 @@
         .align 4
 
 kernelvec:
-        # 为保存寄存器在内核栈上分配空间（栈向下生长）
+        # Allocate stack space for the saved register set.
         addi.d  $sp, $sp, -256
 
-        # 保存寄存器（不要保存 $sp 本身；不要保存/恢复 $tp 若其包含 hartid）
+        # Save general registers. Keep a snapshot of $tp, but leave the
+        # live hart-local value in place when we return.
         st.d    $ra, $sp, 0
-        st.d    $tp, $sp, 8        # 可选保存（通常不恢复），若你选择不保存可删掉此行
-        # st.d $sp, $sp, 16       # 不要保存 $sp 到栈上（会引入混乱），所以注释掉
+        st.d    $tp, $sp, 8
         st.d    $a0, $sp, 24
         st.d    $a1, $sp, 32
         st.d    $a2, $sp, 40
@@ -44,13 +44,11 @@ kernelvec:
         st.d    $s7, $sp, 232
         st.d    $s8, $sp, 240
 
-        # 调用 C 处理器（kerneltrap）
+        # Enter the C trap handler.
         bl      kerneltrap
 
-        # 恢复寄存器（注意：如果你保存了 $tp，上面没恢复以避免跨 hart 恢复）
+        # Restore registers; $tp remains the hart-local CPU id.
         ld.d    $ra, $sp, 0
-        # 如果保存了 $tp 并且要恢复，请把下面注释去掉；通常建议不恢复 $tp
-        # ld.d $tp, $sp, 8
         ld.d    $a0, $sp, 24
         ld.d    $a1, $sp, 32
         ld.d    $a2, $sp, 40
@@ -81,6 +79,4 @@ kernelvec:
         ld.d    $s8, $sp, 240
 
         addi.d  $sp, $sp, 256
-
-        # 返回到异常发生处（LoongArch: ERTN）
         ertn

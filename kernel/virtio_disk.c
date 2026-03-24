@@ -1,8 +1,6 @@
 //
-// driver for qemu's virtio disk device.
-// uses qemu's mmio interface to virtio.
-//
-// qemu ... -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+// Legacy virtio-mmio disk driver kept for reference.
+// The current build uses disk.c with virtio-blk-pci on QEMU virt.
 //
 
 #include "types.h"
@@ -40,7 +38,7 @@ static struct disk {
 
   // our own book-keeping.
   char free[NUM];  // is a descriptor free?
-  uint16 used_idx; // we've looked this far in used[2..NUM].
+  uint16 used_idx; // next used-ring entry to consume.
 
   // track info about in-flight operations,
   // for use when completion interrupt arrives.

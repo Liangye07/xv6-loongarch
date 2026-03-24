@@ -19,8 +19,7 @@ _entry:
     csrwr       $t0, LOONGARCH_CSR_DMWIN2
     csrwr       $t0, LOONGARCH_CSR_DMWIN3
 
-    # 配置 CRMD：开启分页(PG=1)，设置 PLV0，关闭中断(IE=0)
-    # 0xb0 = 10110000b (取决于具体架构定义，通常包含 DA=0, PG=1)
+    # 配置 CRMD：进入分页模式，保持 PLV0，并关闭中断(IE=0)
     li.w        $t0, 0xb0
     csrwr       $t0, LOONGARCH_CSR_CRMD
 

@@ -66,12 +66,6 @@ void            log_write(struct buf*);
 void            begin_op(void);
 void            end_op(void);
 
-// pipe.c
-int             pipealloc(struct file**, struct file**);
-void            pipeclose(struct pipe*, int);
-int             piperead(struct pipe*, uint64, int);
-int             pipewrite(struct pipe*, uint64, int);
-
 // printf.c
 void            printf(char*, ...);
 void            panic(char*) __attribute__((noreturn));
@@ -144,8 +138,6 @@ void            kerneltrap(void);
 void            usertrapret(void);
 void            usertrap(void);
 void            merrtrap(void) __attribute__((noreturn));
-// 确保声明了汇编调用的入口
-// void         prepare_return(void); // 如果你还没写 usertrap，先注释掉
 // uart.c
 void            uartinit(void);
 void            uartintr(void);
