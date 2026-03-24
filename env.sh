@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
-script_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 is_sourced=0
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   is_sourced=1
+else
+  set -euo pipefail
 fi
+
+script_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 XV6_REPO_ROOT="${XV6_REPO_ROOT:-$script_dir}"
 XV6_TOOLCHAIN_TARGET="${XV6_TOOLCHAIN_TARGET:-loongarch64-unknown-linux-gnu}"
@@ -362,7 +363,7 @@ main() {
 
 if [[ "$is_sourced" -eq 1 ]]; then
   activate_environment
-  doctor || return 1
+  doctor
 else
   main "${1:-install}"
 fi
