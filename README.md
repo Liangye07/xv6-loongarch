@@ -185,5 +185,5 @@ make qemu
 ## 说明
 
 - 当前仓库基线已经不是“只完成部分移植”的状态，而是一个可启动、可运行用户程序、可执行基础测试的 LoongArch xv6 版本。
-- 默认文件系统镜像 `fs.img` 会在构建时重新生成，并打包 `README` 与 `user/` 下的用户程序。
+- 默认文件系统镜像 `fs.img` 会在构建时重新生成，并打包 `README.md` 与 `user/` 下的用户程序。
 - 当前分支最近基线提交为 `a974fb0`：`review: tighten boot, vm, proc, fs, syscall, and disk paths`。

@@ -174,8 +174,8 @@ UPROGS = \
 # =========================================================
 # File system image
 # =========================================================
-fs.img: mkfs/mkfs README $(UPROGS)
-	mkfs/mkfs fs.img README $(UPROGS)
+fs.img: mkfs/mkfs README.md $(UPROGS)
+	mkfs/mkfs fs.img README.md $(UPROGS)
 	xxd -i fs.img > kernel/ramdisk.h
 
 # =========================================================
