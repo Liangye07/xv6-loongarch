@@ -25,6 +25,72 @@ static void freeproc(struct proc *p);
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+#define STRIDE_LARGE 1024ULL
+
+static uint64
+proc_weight_for_priority(int priority)
+{
+  if(priority < PROC_PRIO_MIN)
+    priority = PROC_PRIO_MIN;
+  if(priority > PROC_PRIO_MAX)
+    priority = PROC_PRIO_MAX;
+  return 1ULL << (priority - PROC_PRIO_MIN);
+}
+
+static void
+proc_set_priority_locked(struct proc *p, int priority)
+{
+  p->priority = priority;
+  p->weight = proc_weight_for_priority(priority);
+  p->stride = STRIDE_LARGE / p->weight;
+  if(p->stride == 0)
+    p->stride = 1;
+}
+
+static uint64
+proc_current_ticks(void)
+{
+  uint64 now;
+
+  acquire(&tickslock);
+  now = ticks;
+  release(&tickslock);
+  return now;
+}
+
+static uint64
+proc_min_pass(void)
+{
+  struct proc *p;
+  uint64 minpass = 0;
+  int found = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state == SLEEPING || p->state == RUNNABLE || p->state == RUNNING){
+      if(found == 0 || p->pass < minpass){
+        minpass = p->pass;
+        found = 1;
+      }
+    }
+    release(&p->lock);
+  }
+
+  return found ? minpass : 0;
+}
+
+static void
+proc_snapshot_locked(struct pstat *ps, struct proc *p)
+{
+  ps->pid = p->pid;
+  ps->state = p->state;
+  ps->priority = p->priority;
+  ps->sz = p->sz;
+  ps->run_ticks = p->run_ticks;
+  ps->sched_count = p->sched_count;
+  safestrcpy(ps->name, p->name, sizeof(ps->name));
+}
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -124,6 +190,11 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  proc_set_priority_locked(p, PROC_PRIO_DEFAULT);
+  p->pass = 0;
+  p->run_ticks = 0;
+  p->sched_count = 0;
+  p->create_ticks = proc_current_ticks();
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -168,6 +239,13 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  p->priority = 0;
+  p->weight = 0;
+  p->stride = 0;
+  p->pass = 0;
+  p->run_ticks = 0;
+  p->sched_count = 0;
+  p->create_ticks = 0;
   p->state = UNUSED;
 }
 
@@ -261,6 +339,7 @@ int
 fork(void)
 {
   int i, pid;
+  uint64 base_pass;
   struct proc *np;
   struct proc *p = myproc();
 
@@ -283,6 +362,8 @@ fork(void)
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
 
+  proc_set_priority_locked(np, p->priority);
+
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
@@ -294,12 +375,14 @@ fork(void)
   pid = np->pid;
 
   release(&np->lock);
+  base_pass = proc_min_pass();
 
   acquire(&wait_lock);
   np->parent = p;
   release(&wait_lock);
 
   acquire(&np->lock);
+  np->pass = base_pass;
   np->state = RUNNABLE;
   release(&np->lock);
 
@@ -428,6 +511,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *best;
   struct cpu *c = mycpu();
   
   c->proc = 0;
@@ -435,23 +519,33 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
+    best = 0;
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-
-        c->proc = 0;
+      if(p->state == RUNNABLE &&
+         (best == 0 || p->pass < best->pass ||
+          (p->pass == best->pass && p->pid < best->pid))){
+        if(best)
+          release(&best->lock);
+        best = p;
+        continue;
       }
       release(&p->lock);
+    }
+
+    if(best){
+      // Switch to chosen process. It is the process's job
+      // to release its lock and then reacquire it
+      // before jumping back to us.
+      best->state = RUNNING;
+      best->sched_count++;
+      c->proc = best;
+      swtch(&c->context, &best->context);
+
+      // Charge one stride quantum after the process gives up the CPU.
+      best->pass += best->stride;
+      c->proc = 0;
+      release(&best->lock);
     }
   }
 }
@@ -604,6 +698,61 @@ kill(int pid)
     release(&p->lock);
   }
   return -1;
+}
+
+int
+setpriority(int pid, int priority)
+{
+  struct proc *p;
+
+  if(priority < PROC_PRIO_MIN || priority > PROC_PRIO_MAX)
+    return -1;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED && p->pid == pid){
+      proc_set_priority_locked(p, priority);
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+
+  return -1;
+}
+
+int
+getprocs(uint64 addr, int max)
+{
+  struct proc *p;
+  struct proc *curproc = myproc();
+  struct pstat ps;
+  int count = 0;
+
+  if(max < 0)
+    return -1;
+  if(max > NPROC)
+    max = NPROC;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    int used = 0;
+
+    acquire(&p->lock);
+    if(p->state != UNUSED && count < max){
+      proc_snapshot_locked(&ps, p);
+      used = 1;
+    }
+    release(&p->lock);
+
+    if(used){
+      if(copyout(curproc->pagetable, addr + (uint64)count * sizeof(ps),
+                 (char *)&ps, sizeof(ps)) < 0)
+        return -1;
+      count++;
+    }
+  }
+
+  return count;
 }
 
 // Copy to either a user address, or kernel address,

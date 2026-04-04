@@ -1,6 +1,7 @@
 #include "kernel/types.h"
 struct stat;
 struct rtcdate;
+struct pstat;
 
 // system calls
 int fork(void);
@@ -24,6 +25,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int setpriority(int, int);
+int getprocs(struct pstat*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

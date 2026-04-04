@@ -4,6 +4,7 @@
 #include "types.h"
 #include "spinlock.h"
 #include "param.h"
+#include "pstat.h"
 #include "trapframe.h"
 
 // 保存内核上下文切换时需要记录的寄存器 (Callee-saved)
@@ -139,6 +140,14 @@ struct proc {
   struct file *ofile[NOFILE];  // 打开的文件
   struct inode *cwd;           // 当前工作目录
   char name[16];               // 进程名称 (用于调试)
+
+  int priority;                // 用户可见优先级
+  uint64 weight;               // 由优先级映射出的调度权重
+  uint64 stride;               // stride scheduling 步长
+  uint64 pass;                 // stride scheduling 当前虚拟时间
+  uint64 run_ticks;            // 累计运行 tick 数
+  uint64 sched_count;          // 被调度次数
+  uint64 create_ticks;         // 创建时刻对应的全局 ticks
 };
 
 #endif

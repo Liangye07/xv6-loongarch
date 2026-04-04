@@ -5,6 +5,7 @@
 #include "param.h"
 #include "memlayout.h"
 #include "spinlock.h"
+#include "pstat.h"
 #include "proc.h"
 
 uint64
@@ -96,4 +97,25 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_setpriority(void)
+{
+  int pid, priority;
+
+  if(argint(0, &pid) < 0 || argint(1, &priority) < 0)
+    return -1;
+  return setpriority(pid, priority);
+}
+
+uint64
+sys_getprocs(void)
+{
+  uint64 addr;
+  int max;
+
+  if(argaddr(0, &addr) < 0 || argint(1, &max) < 0)
+    return -1;
+  return getprocs(addr, max);
 }

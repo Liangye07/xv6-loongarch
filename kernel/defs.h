@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct pstat;
 
 // bio.c
 void            binit(void);
@@ -81,6 +82,8 @@ pagetable_t     proc_pagetable(struct proc *);
 void            proc_freepagetable(pagetable_t, uint64);
 int             kill(int);
 int             killed(struct proc*);
+int             setpriority(int, int);
+int             getprocs(uint64, int);
 struct cpu*     mycpu(void);
 struct proc*    myproc();
 void            procinit(void);
