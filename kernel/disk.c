@@ -9,6 +9,10 @@
 #include "defs.h"
 #include "virtio.h"
 
+#ifndef DISK_FORCE_RAMDISK
+#define DISK_FORCE_RAMDISK 0
+#endif
+
 #define PCIE_ECAM_BASE   0x20000000UL
 #define PCI_BUS_MAX      256
 #define PCI_DEV_MAX      32
@@ -520,6 +524,12 @@ disk_init(void)
   initlock(&disk.lock, "disk");
   disk.use_ramdisk = 1;
   disk.ready = 0;
+
+  if(DISK_FORCE_RAMDISK){
+    printf("disk: forced ramdisk mode\n");
+    ramdiskinit();
+    return;
+  }
 
   if(virtio_pci_disk_init() == 0){
     disk.use_ramdisk = 0;

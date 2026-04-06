@@ -67,6 +67,8 @@ CFLAGS += -ffreestanding -fno-common -nostdlib
 CFLAGS += -fno-stack-protector
 CFLAGS += -fno-pie -no-pie
 CFLAGS += -I.
+DISK_FORCE_RAMDISK ?= 0
+CFLAGS += -DDISK_FORCE_RAMDISK=$(DISK_FORCE_RAMDISK)
 
 LDFLAGS = -z max-page-size=4096
 
