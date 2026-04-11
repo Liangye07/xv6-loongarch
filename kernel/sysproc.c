@@ -100,16 +100,6 @@ sys_uptime(void)
 }
 
 uint64
-sys_setpriority(void)
-{
-  int pid, priority;
-
-  if(argint(0, &pid) < 0 || argint(1, &priority) < 0)
-    return -1;
-  return setpriority(pid, priority);
-}
-
-uint64
 sys_getprocs(void)
 {
   uint64 addr;

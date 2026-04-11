@@ -79,12 +79,12 @@ main(int argc, char **argv)
     }
 
     printf("== top round %d uptime %d ==\n", round + 1, uptime());
-    printf("PID\tPRI\t+TICK\tTOTAL\tSCHED\tSTATE\tNAME\n");
+    printf("PID\tLEVEL\t+TICK\tTOTAL\tSCHED\tSTATE\tNAME\n");
     for(int i = 0; i < curn; i++){
       uint64 oldticks = previous_ticks(prev, prevn, cur[i].pid);
       uint64 delta = cur[i].run_ticks - oldticks;
       printf("%d\t%d\t%llu\t%llu\t%llu\t%s\t%s\n",
-             cur[i].pid, cur[i].priority, delta, cur[i].run_ticks,
+             cur[i].pid, cur[i].level, delta, cur[i].run_ticks,
              cur[i].sched_count, state_name(cur[i].state), cur[i].name);
     }
     memmove(prev, cur, sizeof(struct pstat) * NPROC);

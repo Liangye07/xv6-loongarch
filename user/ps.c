@@ -42,10 +42,10 @@ main(void)
     exit(1);
   }
 
-  printf("PID\tSTATE\tPRI\tMEM\tTICKS\tSCHED\tNAME\n");
+  printf("PID\tSTATE\tLEVEL\tMEM\tTICKS\tSCHED\tNAME\n");
   for(int i = 0; i < n; i++){
     printf("%d\t%s\t%d\t%llu\t%llu\t%llu\t%s\n",
-           ps[i].pid, state_name(ps[i].state), ps[i].priority,
+           ps[i].pid, state_name(ps[i].state), ps[i].level,
            ps[i].sz, ps[i].run_ticks, ps[i].sched_count, ps[i].name);
   }
 

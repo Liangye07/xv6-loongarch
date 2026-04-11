@@ -130,6 +130,14 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
     p->run_ticks++;
+    p->ticks_in_slice++;
+    // MLFQ 降级：时间片用完则降到下一层。
+    if(p->ticks_in_slice >= MLFQ_SLICE(p->mlfq_level)){
+      int next = p->mlfq_level + 1;
+      if(next >= MLFQ_LEVELS) next = MLFQ_LEVELS - 1;
+      p->mlfq_level = next;
+      p->ticks_in_slice = 0;
+    }
     yield();
   }
 
@@ -158,7 +166,16 @@ kerneltrap()
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING){
-    myproc()->run_ticks++;
+    struct proc *kp = myproc();
+    kp->run_ticks++;
+    kp->ticks_in_slice++;
+    // MLFQ 降级：时间片用完则降到下一层。
+    if(kp->ticks_in_slice >= MLFQ_SLICE(kp->mlfq_level)){
+      int next = kp->mlfq_level + 1;
+      if(next >= MLFQ_LEVELS) next = MLFQ_LEVELS - 1;
+      kp->mlfq_level = next;
+      kp->ticks_in_slice = 0;
+    }
     yield();
   }
 
@@ -185,6 +202,9 @@ clockintr()
   ticks++;
   wakeup(&ticks);
   release(&tickslock);
+
+  if((ticks % MLFQ_BOOST_INTERVAL) == 0)
+    mlfq_boost_all();
 }
 
 // check if it's an external interrupt or software interrupt,

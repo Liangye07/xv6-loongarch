@@ -26,16 +26,6 @@ struct context {
   uint64 s8;
 };
 
-// 每个 CPU 的状态结构
-struct cpu {
-  struct proc *proc;          // 当前在该 CPU 上运行的进程，如果没有则为 null
-  struct context context;     // 调用 swtch() 从而进入调度器 (scheduler)
-  int noff;                   // push_off() 嵌套深度
-  int intena;                 // 在 push_off() 之前，中断是否已经开启
-};
-
-extern struct cpu cpus[NCPU];
-
 // 存放用户态寄存器的结构，位于 uservec.S 处理过程中。
 // 在页表中映射在 trampoline 页之下。
 struct trapframe {
@@ -117,6 +107,22 @@ _Static_assert(sizeof(struct trapframe) == TF_SIZE, "trapframe size");
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+// MLFQ 参数：3 层队列，时间片按层倍增
+#define MLFQ_LEVELS   3
+#define MLFQ_SLICE(lv) (1 << (lv))  // Q0=1 tick, Q1=2 ticks, Q2=4 ticks
+#define MLFQ_BOOST_INTERVAL 200
+
+// 每个 CPU 的状态结构
+struct cpu {
+  struct proc *proc;                  // 当前在该 CPU 上运行的进程，如果没有则为 null
+  struct context context;             // 调用 swtch() 从而进入调度器 (scheduler)
+  int noff;                           // push_off() 嵌套深度
+  int intena;                         // 在 push_off() 之前，中断是否已经开启
+  int sched_rr_next[MLFQ_LEVELS];     // 每层队列各自的 RR 扫描起点
+};
+
+extern struct cpu cpus[NCPU];
+
 // 进程控制块 (Process Control Block)
 struct proc {
   struct spinlock lock;
@@ -141,10 +147,8 @@ struct proc {
   struct inode *cwd;           // 当前工作目录
   char name[16];               // 进程名称 (用于调试)
 
-  int priority;                // 用户可见优先级
-  uint64 weight;               // 由优先级映射出的调度权重
-  uint64 stride;               // stride scheduling 步长
-  uint64 pass;                 // stride scheduling 当前虚拟时间
+  int mlfq_level;              // 当前所在 MLFQ 队列层 (0=最高, MLFQ_LEVELS-1=最低)
+  int ticks_in_slice;          // 本层已消耗的 tick 数，用于判断时间片是否用尽
   uint64 run_ticks;            // 累计运行 tick 数
   uint64 sched_count;          // 被调度次数
   uint64 create_ticks;         // 创建时刻对应的全局 ticks

@@ -5,10 +5,6 @@
 
 #define PSTAT_NAME_LEN 16
 
-#define PROC_PRIO_MIN 1
-#define PROC_PRIO_MAX 5
-#define PROC_PRIO_DEFAULT 3
-
 enum pstat_state {
   PSTAT_UNUSED = 0,
   PSTAT_USED,
@@ -21,7 +17,7 @@ enum pstat_state {
 struct pstat {
   int pid;
   int state;
-  int priority;
+  int level;       // 当前 MLFQ 队列层级 (0=Q0, 1=Q1, 2=Q2)
   uint64 sz;
   uint64 run_ticks;
   uint64 sched_count;

@@ -25,28 +25,6 @@ static void freeproc(struct proc *p);
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
-#define STRIDE_LARGE 1024ULL
-
-static uint64
-proc_weight_for_priority(int priority)
-{
-  if(priority < PROC_PRIO_MIN)
-    priority = PROC_PRIO_MIN;
-  if(priority > PROC_PRIO_MAX)
-    priority = PROC_PRIO_MAX;
-  return 1ULL << (priority - PROC_PRIO_MIN);
-}
-
-static void
-proc_set_priority_locked(struct proc *p, int priority)
-{
-  p->priority = priority;
-  p->weight = proc_weight_for_priority(priority);
-  p->stride = STRIDE_LARGE / p->weight;
-  if(p->stride == 0)
-    p->stride = 1;
-}
-
 static uint64
 proc_current_ticks(void)
 {
@@ -58,33 +36,12 @@ proc_current_ticks(void)
   return now;
 }
 
-static uint64
-proc_min_pass(void)
-{
-  struct proc *p;
-  uint64 minpass = 0;
-  int found = 0;
-
-  for(p = proc; p < &proc[NPROC]; p++) {
-    acquire(&p->lock);
-    if(p->state == SLEEPING || p->state == RUNNABLE || p->state == RUNNING){
-      if(found == 0 || p->pass < minpass){
-        minpass = p->pass;
-        found = 1;
-      }
-    }
-    release(&p->lock);
-  }
-
-  return found ? minpass : 0;
-}
-
 static void
 proc_snapshot_locked(struct pstat *ps, struct proc *p)
 {
   ps->pid = p->pid;
   ps->state = p->state;
-  ps->priority = p->priority;
+  ps->level = p->mlfq_level;
   ps->sz = p->sz;
   ps->run_ticks = p->run_ticks;
   ps->sched_count = p->sched_count;
@@ -113,9 +70,14 @@ void
 procinit(void)
 {
   struct proc *p;
+  struct cpu *c;
+  int level;
   
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+  for(c = cpus; c < &cpus[NCPU]; c++)
+    for(level = 0; level < MLFQ_LEVELS; level++)
+      c->sched_rr_next[level] = 0;
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -190,8 +152,8 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
-  proc_set_priority_locked(p, PROC_PRIO_DEFAULT);
-  p->pass = 0;
+  p->mlfq_level = 0;
+  p->ticks_in_slice = 0;
   p->run_ticks = 0;
   p->sched_count = 0;
   p->create_ticks = proc_current_ticks();
@@ -239,10 +201,8 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
-  p->priority = 0;
-  p->weight = 0;
-  p->stride = 0;
-  p->pass = 0;
+  p->mlfq_level = 0;
+  p->ticks_in_slice = 0;
   p->run_ticks = 0;
   p->sched_count = 0;
   p->create_ticks = 0;
@@ -339,7 +299,6 @@ int
 fork(void)
 {
   int i, pid;
-  uint64 base_pass;
   struct proc *np;
   struct proc *p = myproc();
 
@@ -362,7 +321,9 @@ fork(void)
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
 
-  proc_set_priority_locked(np, p->priority);
+  // 子进程继承父进程的优先级上限，从最高队列层开始
+  np->mlfq_level = 0;
+  np->ticks_in_slice = 0;
 
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
@@ -375,14 +336,12 @@ fork(void)
   pid = np->pid;
 
   release(&np->lock);
-  base_pass = proc_min_pass();
 
   acquire(&wait_lock);
   np->parent = p;
   release(&wait_lock);
 
   acquire(&np->lock);
-  np->pass = base_pass;
   np->state = RUNNABLE;
   release(&np->lock);
 
@@ -510,40 +469,44 @@ wait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p;
   struct proc *best;
   struct cpu *c = mycpu();
-  
+  int bestidx;
+  int level;
+  int idx;
+  int start;
+
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
     best = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE &&
-         (best == 0 || p->pass < best->pass ||
-          (p->pass == best->pass && p->pid < best->pid))){
-        if(best)
-          release(&best->lock);
-        best = p;
-        continue;
+    bestidx = -1;
+
+    // MLFQ: 优先选择最高优先级的非空队列。
+    // 同一层中的进程从上次运行位置的下一个表项开始轮转扫描，
+    // 避免固定偏向较小 pid 的进程。
+    for(level = 0; level < MLFQ_LEVELS && best == 0; level++) {
+      start = c->sched_rr_next[level] % NPROC;
+      for(int scanned = 0; scanned < NPROC; scanned++) {
+        idx = (start + scanned) % NPROC;
+        acquire(&proc[idx].lock);
+        if(proc[idx].state == RUNNABLE && proc[idx].mlfq_level == level){
+          best = &proc[idx];
+          bestidx = idx;
+          break;
+        }
+        release(&proc[idx].lock);
       }
-      release(&p->lock);
     }
 
     if(best){
-      // Switch to chosen process. It is the process's job
-      // to release its lock and then reacquire it
-      // before jumping back to us.
       best->state = RUNNING;
       best->sched_count++;
       c->proc = best;
+      c->sched_rr_next[best->mlfq_level] = (bestidx + 1) % NPROC;
       swtch(&c->context, &best->context);
-
-      // Charge one stride quantum after the process gives up the CPU.
-      best->pass += best->stride;
       c->proc = 0;
       release(&best->lock);
     }
@@ -658,6 +621,9 @@ wakeup(void *chan)
     if(p != myproc()){
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
+        // I/O 完成后将进程提升回最高层（MLFQ 奖励 I/O 密集型进程）
+        p->mlfq_level = 0;
+        p->ticks_in_slice = 0;
         p->state = RUNNABLE;
       }
       release(&p->lock);
@@ -701,27 +667,6 @@ kill(int pid)
 }
 
 int
-setpriority(int pid, int priority)
-{
-  struct proc *p;
-
-  if(priority < PROC_PRIO_MIN || priority > PROC_PRIO_MAX)
-    return -1;
-
-  for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
-    if(p->state != UNUSED && p->pid == pid){
-      proc_set_priority_locked(p, priority);
-      release(&p->lock);
-      return 0;
-    }
-    release(&p->lock);
-  }
-
-  return -1;
-}
-
-int
 getprocs(uint64 addr, int max)
 {
   struct proc *p;
@@ -753,6 +698,21 @@ getprocs(uint64 addr, int max)
   }
 
   return count;
+}
+
+void
+mlfq_boost_all(void)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED){
+      p->mlfq_level = 0;
+      p->ticks_in_slice = 0;
+    }
+    release(&p->lock);
+  }
 }
 
 // Copy to either a user address, or kernel address,

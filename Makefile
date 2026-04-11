@@ -167,7 +167,6 @@ UPROGS = \
 	$U/_top \
 	$U/_wc \
 	$U/_zombie \
-	$U/_chpr \
 	$U/_burn \
 	$U/_forktest \
 	$U/_stressfs \
