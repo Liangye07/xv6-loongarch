@@ -28,10 +28,14 @@
 #define LS7A_INT_STATUS_REG              LS7A_PCH_REG_BASE + 0x3a0
 #define LS7A_INT_POL_REG                 LS7A_PCH_REG_BASE + 0x3e0
 
-// QEMU currently boots with `-m 256M`, but the page allocator only manages the
-// first 128 MiB direct-mapped RAM window starting at RAMBASE.
-#define RAMBASE (0x200000UL | DMWIN0_MASK)
-#define RAMSTOP (RAMBASE + 128*1024*1024)
+// QEMU currently boots with `-m 256M`. Physical RAM starts at 0, but the first
+// 2 MiB are reserved for the boot/kernel image placement. The allocator should
+// therefore manage the direct-mapped RAM window [RAMBASE, RAMTOP_PHYS) after
+// the kernel image end, instead of truncating the usable range to 128 MiB.
+#define RAMBASE_PHYS 0x200000UL
+#define RAMTOP_PHYS  0x10000000UL
+#define RAMBASE (RAMBASE_PHYS | DMWIN0_MASK)
+#define RAMSTOP (RAMTOP_PHYS | DMWIN0_MASK)
 
 // User trapframe and per-process kernel stacks live at the top of the
 // lower-half virtual address space defined by MAXVA.
