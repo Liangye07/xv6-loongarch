@@ -202,6 +202,7 @@ copyinstr2(char *s)
 void
 copyinstr3(char *s)
 {
+  uint64 sz0 = (uint64)sbrk(0);
   sbrk(8192);
   uint64 top = (uint64) sbrk(0);
   if((top % PGSIZE) != 0){
@@ -238,6 +239,11 @@ copyinstr3(char *s)
   ret = exec(b, args);
   if(ret != -1){
     printf("exec(%s) returned %d, not -1\n", b, fd);
+    exit(1);
+  }
+
+  if(sbrk(-((uint64)sbrk(0) - sz0)) == SBRK_ERROR){
+    printf("sbrk(copyinstr3) shrink failed\n");
     exit(1);
   }
 }
